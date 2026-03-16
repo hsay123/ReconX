@@ -36,26 +36,10 @@ ReconX is a **single-file, sequential Python CLI tool**. It has no server, no da
 
 ## High-Level Architecture
 
-```
-┌─────────────┐          ┌──────────────────────────────────────────────┐
-│   User      │  domain  │                 ReconX.py                    │
-│   (CLI)     │ ──────►  │                                              │
-└─────────────┘          │   ┌─────────────────────────────────────┐   │
-                         │   │       Main Orchestrator (main())     │   │
-                         │   └──────┬──────┬──────┬────────────────┘   │
-                         │          │      │      │                     │
-                         │   ┌──────▼─┐ ┌──▼───┐ ┌▼──────┐ ┌───────┐  │
-                         │   │  IP    │ │ HDR  │ │ WHOIS │ │  DIG  │  │
-                         │   │Resolve │ │Fetch │ │Lookup │ │ Scan  │  │
-                         │   └──┬─────┘ └──┬───┘ └───┬───┘ └───┬───┘  │
-                         │      │           │         │         │      │
-                         │   ┌──▼───────────▼─────────▼─────────▼───┐  │
-                         │   │         Output Collector              │  │
-                         │   └──────────────────┬────────────────────┘  │
-                         └──────────────────────┼──────────────────────┘
-                                                │
-                                                ▼
-                                       Terminal (stdout)
+<p align="center">
+  <img src="assets/Screenshot From 2026-03-17 00-05-23.png" alt="ReconX Architecture" width="900">
+</p>
+
 ```
 
 ---
