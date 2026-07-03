@@ -187,18 +187,6 @@ enum TradeStatus { OPEN PAYMENT_PENDING COMPLETED CANCELLED }
 
 ---
 
-## ⚠️ Known Issues
-
-| Issue | Notes |
-|-------|-------|
-| Razorpay webhook retries | Add idempotency handling to prevent duplicate releases |
-| Monad public RPC rate limits | Use a private RPC endpoint in production |
-| No dispute mechanism | `payment_captured` webhook is currently the sole source of truth |
-
----
-
-## 👤 Author
-
 **Yash** · [github.com/hsay123](https://github.com/hsay123)
 
 ---
