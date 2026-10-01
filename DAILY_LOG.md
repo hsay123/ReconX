@@ -24,3 +24,11 @@
   and timeouts distinguished in the error text. Added `ReconContext` so
   `--timeout`, `--concurrency` and `--wordlist` actually reach the modules
   instead of being parsed and ignored. 60 tests passing.
+- Step 6: added `reconx/subdomains.py`. crt.sh certificate transparency for
+  passive discovery, plus wordlist resolution capped at 32 threads with a
+  per-query lifetime. Wildcard DNS is detected with a random-label probe,
+  because a catch-all zone would otherwise report every word in the list as a
+  hit — the single most common way subdomain tools produce garbage. crt.sh was
+  answering 502 from this network all session, which exercised the degradation
+  path: the module reports a warning and still returns wordlist results.
+  93 tests passing.

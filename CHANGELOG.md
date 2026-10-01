@@ -23,3 +23,8 @@
 - feat: modules now take a shared `ReconContext` (timeout, concurrency,
   wordlist) rather than bespoke arguments, so `--timeout` actually reaches the
   network layer.
+- feat: subdomain discovery. Certificate transparency via crt.sh, plus optional
+  wordlist resolution through a concurrency-capped thread pool. Results from
+  both sources are deduplicated and sorted; wildcard DNS is detected with a
+  random-label probe so a catch-all zone does not report every word as a hit.
+  Ships a small default wordlist in the package.

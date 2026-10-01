@@ -17,7 +17,7 @@ from __future__ import annotations
 import sys
 from typing import Any
 
-from reconx import __version__, core, dns_info, http_info, whois_info
+from reconx import __version__, core, dns_info, http_info, subdomains, whois_info
 
 __all__ = ["get_headers", "get_ip", "get_subdomains", "get_whois", "main"]
 
@@ -71,27 +71,21 @@ def get_whois(domain: str) -> dict[str, Any]:
 
 
 def get_subdomains(domain: str) -> dict[str, Any]:
-    """Report that subdomain discovery moved into the CLI.
+    """Return subdomains discovered for ``domain``.
 
-    The original implementation shelled out to ``dig *.domain``, which is not
-    valid DNS and never finds anything. Subdomain discovery is being rebuilt on
-    certificate transparency plus a capped wordlist; until that module lands,
-    this reports the situation instead of pretending it worked.
+    Replaces the original ``dig *.domain`` call, which was not valid DNS and so
+    never returned anything. Now uses certificate transparency plus a capped
+    wordlist.
 
     Args:
         domain: A domain name.
 
     Returns:
-        A dict with an empty ``subdomains`` list and an explanatory ``note``.
+        A dict with a sorted ``subdomains`` list, or an ``error`` key.
     """
-    core.normalize_domain(domain)  # validate, so bad input still raises here
-    return {
-        "subdomains": [],
-        "note": (
-            "subdomain discovery moved to the reconx package: "
-            "run 'reconx example.com --modules subdomains'"
-        ),
-    }
+    target = core.normalize_domain(domain)
+    result = subdomains.lookup(target)
+    return {"subdomains": result.get("subdomains", []), "error": result.get("error")}
 
 
 def main() -> int:

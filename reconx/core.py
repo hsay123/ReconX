@@ -20,7 +20,7 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any
 
-from . import dns_info, http_info, whois_info
+from . import dns_info, http_info, subdomains, whois_info
 from .context import ReconContext, default_context
 
 __all__ = [
@@ -114,6 +114,7 @@ def normalize_domain(raw: str) -> str:
 _MODULES: dict[str, ModuleRunner] = {
     "dns": dns_info.lookup,
     "http": http_info.lookup,
+    "subdomains": subdomains.lookup,
     "whois": whois_info.lookup,
 }
 

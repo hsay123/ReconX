@@ -7,7 +7,7 @@
 - [x] 3. refactor: move to a `reconx/` package, functions return dicts
 - [x] 4. feat: argparse CLI with domain normalization
 - [x] 5. feat: DNS module on dnspython (drop the broken `dig *.domain` call)
-- [ ] 6. feat: subdomain discovery (crt.sh + capped wordlist resolution)
+- [x] 6. feat: subdomain discovery (crt.sh + capped wordlist resolution)
 - [ ] 7. feat: HTTP module with redirect chain and security-header audit
 - [ ] 8. feat: TLS module
 - [ ] 9. feat: lightweight technology fingerprinting
