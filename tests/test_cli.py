@@ -17,9 +17,9 @@ from reconx import cli, core
 def stub_registry(monkeypatch: pytest.MonkeyPatch) -> None:
     """Replace every registered module with a deterministic stub."""
     stubs = {
-        "dns": lambda domain: {"records": {"A": ["93.184.216.34"]}},
-        "http": lambda domain: {"status_code": 200, "headers": {"server": "nginx"}},
-        "whois": lambda domain: {"registrar": "Test Registrar"},
+        "dns": lambda domain, context: {"records": {"A": ["93.184.216.34"]}},
+        "http": lambda domain, context: {"status_code": 200, "headers": {"server": "nginx"}},
+        "whois": lambda domain, context: {"registrar": "Test Registrar"},
     }
     for name, runner in stubs.items():
         monkeypatch.setitem(core._MODULES, name, runner)
@@ -118,7 +118,7 @@ class TestMain:
         assert "authorized" in capsys.readouterr().err
 
     def test_all_modules_failing_returns_one(self, monkeypatch, capsys):
-        def boom(domain: str) -> dict[str, Any]:
+        def boom(domain: str, context: Any) -> dict[str, Any]:
             raise RuntimeError("nope")
 
         for name in core.available_modules():

@@ -37,3 +37,12 @@
   final destination. Added a security-header audit for HSTS, CSP,
   X-Frame-Options, X-Content-Type-Options, Referrer-Policy and
   Permissions-Policy, with a score and grade. 123 tests passing.
+- Step 8: added the TLS module. It reads issuer, subject, SANs, validity and
+  the negotiated protocol/cipher from one handshake on port 443 — no port
+  scanning. Getting the fields out of a certificate that does not validate
+  needed a small DER reader (`reconx/x509.py`): `getpeercert()` returns `{}`
+  under `CERT_NONE` and raises under a verifying handshake, so both paths fail
+  to report the expired/self-signed certificates that actually matter.
+  Checked a real example.com certificate in as a DER fixture rather than
+  hand-rolling DER bytes, so the parser is tested against real ASN.1
+  (multi-byte OIDs, long-form lengths, UTCTime). 163 tests passing.

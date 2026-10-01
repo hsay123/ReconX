@@ -17,9 +17,9 @@ from reconx import core
 def stub_registry(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
     """Replace every registered module with a deterministic stub."""
     stubs: dict[str, Any] = {
-        "dns": lambda domain: {"records": {"A": ["93.184.216.34"]}},
-        "http": lambda domain: {"status_code": 200, "headers": {}},
-        "whois": lambda domain: {"registrar": "Test Registrar"},
+        "dns": lambda domain, context: {"records": {"A": ["93.184.216.34"]}},
+        "http": lambda domain, context: {"status_code": 200, "headers": {}},
+        "whois": lambda domain, context: {"registrar": "Test Registrar"},
     }
     for name, runner in stubs.items():
         monkeypatch.setitem(core._MODULES, name, runner)
@@ -97,7 +97,7 @@ class TestRun:
         assert report["summary"]["modules_failed"] == []
 
     def test_module_failure_is_isolated(self, monkeypatch):
-        def boom(domain: str) -> dict[str, Any]:
+        def boom(domain: str, context: Any) -> dict[str, Any]:
             raise RuntimeError("kaboom")
 
         monkeypatch.setitem(core._MODULES, "dns", boom)
@@ -109,7 +109,7 @@ class TestRun:
         assert report["summary"]["modules_failed"] == ["dns"]
 
     def test_non_dict_return_is_reported(self, monkeypatch):
-        monkeypatch.setitem(core._MODULES, "dns", lambda domain: ["not", "a", "dict"])
+        monkeypatch.setitem(core._MODULES, "dns", lambda domain, context: ["not", "a", "dict"])
         report = core.run("example.com", modules=["dns"])
         assert "expected dict" in report["results"]["dns"]["error"]
 

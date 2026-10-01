@@ -32,3 +32,9 @@
   destination), response time, and an audit of HSTS, CSP, X-Frame-Options,
   X-Content-Type-Options, Referrer-Policy and Permissions-Policy with a
   pass/missing score and grade. Hops are capped so a redirect loop terminates.
+- feat: TLS module reports issuer, subject, SANs, validity window, days to
+  expiry and the negotiated protocol and cipher from a single handshake to
+  port 443. Adds `reconx.x509`, a small DER reader, because `getpeercert()`
+  returns nothing when verification is off and raises when it is on — which
+  means a broken certificate, the interesting case, could not be reported.
+  Only 443 is ever contacted.
