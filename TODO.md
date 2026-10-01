@@ -3,7 +3,7 @@
 ## v0.2.0 rebuild
 
 - [x] 1. docs: Replace the stale RupeeLink README with an accurate ReconX README
-- [ ] 2. chore: pyproject.toml, console script, .gitignore, ruff config, LICENSE
+- [x] 2. chore: pyproject.toml, console script, .gitignore, ruff config, LICENSE
 - [ ] 3. refactor: move to a `reconx/` package, functions return dicts
 - [ ] 4. feat: argparse CLI with domain normalization
 - [ ] 5. feat: DNS module on dnspython (drop the broken `dig *.domain` call)

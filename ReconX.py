@@ -1,7 +1,9 @@
 import socket
+import subprocess
+
 import requests
 import whois
-import subprocess
+
 
 def get_ip(domain):
     try:
@@ -9,6 +11,7 @@ def get_ip(domain):
         print(f"[+] IP Address: {ip}")
     except Exception as e:
         print(f"[-] Could not get IP: {e}")
+
 
 def get_headers(domain):
     try:
@@ -20,6 +23,7 @@ def get_headers(domain):
     except Exception as e:
         print(f"[-] Could not fetch headers: {e}")
 
+
 def get_whois(domain):
     try:
         info = whois.whois(domain)
@@ -28,6 +32,7 @@ def get_whois(domain):
             print(f"    {key}: {value}")
     except Exception as e:
         print(f"[-] Whois lookup failed: {e}")
+
 
 def get_subdomains(domain):
     try:
@@ -39,6 +44,7 @@ def get_subdomains(domain):
             print("    No subdomains found (try brute force with a wordlist).")
     except Exception as e:
         print(f"[-] Subdomain check failed: {e}")
+
 
 if __name__ == "__main__":
     domain = input("Enter domain (example.com): ").strip()

@@ -7,3 +7,5 @@
 - Step 1: rewrote README.md — it described RupeeLink, not ReconX. Now documents
   the real CLI: six passive modules, install steps, option table, sample output,
   authorization notice, and roadmap.
+- Step 2: added pyproject.toml, requirements files, .gitignore, ruff config and
+  MIT LICENSE so the project is installable and lintable.
