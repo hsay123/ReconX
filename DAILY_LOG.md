@@ -50,3 +50,10 @@
   `X-Powered-By`, the `generator` meta tag, and script/link asset URLs. Each
   match carries high/low confidence so a `jquery` substring in a filename is
   not presented as fact. 187 tests passing.
+- Step 10: added `reconx/report.py` with four renderers over the same report
+  dict — rich console (plain-text fallback), key-sorted JSON, Markdown, and a
+  single-file HTML report with inline CSS and escaped values. Two bugs caught
+  by running it against real output rather than fixtures: the rich console
+  wrote to stdout *and* returned its text, so every report printed twice; and
+  MX/SOA records rendered as Python dict literals in the Markdown and console
+  views. 227 tests passing.

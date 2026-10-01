@@ -9,7 +9,6 @@ without touching the network.
 from __future__ import annotations
 
 import argparse
-import json
 import logging
 import sys
 from collections.abc import Sequence
@@ -17,7 +16,9 @@ from pathlib import Path
 from typing import Any
 
 from . import __version__, core
+from . import report as report_module
 from .context import MAX_CONCURRENCY, ReconContext
+from .report import FORMATS
 
 __all__ = ["LEGAL_NOTICE", "build_parser", "main", "parse_modules"]
 
@@ -75,7 +76,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "-f",
         "--format",
-        choices=("text", "json", "md", "html"),
+        choices=FORMATS,
         default="text",
         help="output format (default: text)",
     )
@@ -134,52 +135,9 @@ def _run_modules(target: str, args: argparse.Namespace) -> dict[str, Any]:
     return core.run(target, modules=parse_modules(args.modules), context=_build_context(args))
 
 
-def _render_text(report: dict[str, Any]) -> str:
-    """Render a console summary of ``report``.
-
-    The full-featured renderer lands with the reporting step; this keeps the
-    default output useful from the first CLI commit onwards.
-    """
-    lines = [
-        f"ReconX {report['version']} - {report['target']}",
-        f"Generated {report['generated_at']}",
-    ]
-    for name in report["modules"]:
-        data = report["results"][name]
-        if "error" in data:
-            lines.append(f"\n[{name}] failed: {data['error']}")
-            continue
-        lines.append(f"\n[{name}]")
-        for key, value in data.items():
-            if key in {"error", "duration_seconds", "warnings"}:
-                continue
-            lines.append(f"    {key}: {_shorten(value)}")
-        for warning in data.get("warnings", []) or []:
-            lines.append(f"    ! {warning}")
-    lines.append(f"\nCompleted in {report['duration_seconds']:g}s")
-    return "\n".join(lines)
-
-
-def _shorten(value: Any) -> str:
-    """Render a module value compactly for the text summary."""
-    if isinstance(value, dict):
-        return ", ".join(f"{key}={_shorten(item)}" for key, item in value.items()) or "{}"
-    if isinstance(value, list):
-        if not value:
-            return "(none)"
-        return ", ".join(_shorten(item) for item in value[:5])
-    return str(value)
-
-
 def _render(report: dict[str, Any], fmt: str) -> str:
     """Serialize ``report`` in the requested format."""
-    if fmt == "json":
-        return json.dumps(report, indent=2, sort_keys=True, default=str)
-    if fmt == "md":
-        return f"# ReconX report for {report['target']}\n"
-    if fmt == "html":
-        return f"<html><body><h1>ReconX report for {report['target']}</h1></body></html>\n"
-    return _render_text(report)
+    return report_module.render(report, fmt)
 
 
 def main(argv: Sequence[str] | None = None) -> int:

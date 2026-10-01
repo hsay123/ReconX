@@ -42,3 +42,8 @@
   the `generator` meta tag and script/link asset URLs. Matches carry a
   confidence level — `high` for something that names the technology outright,
   `low` for a filename that only suggests it.
+- feat: reporting in four formats from one report dict — a `rich` console
+  summary (plain-text fallback when `rich` is not installed), key-sorted JSON,
+  Markdown, and a self-contained HTML page with inline CSS and escaped values.
+  Nested records such as MX and SOA are flattened instead of printed as Python
+  literals.
