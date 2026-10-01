@@ -1,11 +1,16 @@
-## 2026-07-20
-- Daily maintenance.
-## 2026-08-15
-- Daily maintenance.
+# Daily Log
+
 ## 2026-10-01
-- Started the v0.2.0 rebuild. Recorded baseline (19 commits) in NOTES.md.
-- Step 1: rewrote README.md — it described RupeeLink, not ReconX. Now documents
-  the real CLI: six passive modules, install steps, option table, sample output,
-  authorization notice, and roadmap.
-- Step 2: added pyproject.toml, requirements files, .gitignore, ruff config and
-  MIT LICENSE so the project is installable and lintable.
+
+- **Refactor kickoff.** Recorded baseline commit count (**19**) in NOTES.md and confirmed the
+  starting state: a 49-line `ReconX.py` with four print-based functions, no packaging, no
+  tests, and a README describing an unrelated project (RupeeLink).
+- Read the existing docs (ARCHITECTURE.md, CHANGELOG.md, TODO.md) and archived
+  `ReconX_Docs.docx` as a reference-only artefact — it will not be edited or deleted.
+- Set up a project-local `.venv` (the system interpreter is PEP 668 externally managed) and
+  installed the toolchain: ruff, pytest, pytest-cov, responses, plus runtime deps.
+- **Step 1 — docs:** replaced the stale RupeeLink README with an accurate ReconX README
+  (what it does, install, usage, module table, output schema, legal notice, roadmap) and
+  refreshed CHANGELOG/TODO/DAILY_LOG/NOTES alongside it.
+- Planned 13 conventional commits; each step is implemented, verified with
+  `ruff check .` + `ruff format --check .` + `pytest -q`, then committed and pushed.

@@ -1,58 +1,70 @@
 # ReconX
 
-> Passive website reconnaissance CLI. One command, a full picture of a domain.
+> **Passive website reconnaissance CLI** — DNS, WHOIS, HTTP headers, TLS certificates, certificate transparency and light subdomain discovery, from one command.
 
-[![Python](https://img.shields.io/badge/python-3.10%2B-3178C6?style=flat-square&logo=python)](https://www.python.org)
-[![Ruff](https://img.shields.io/badge/lint-ruff-000000?style=flat-square)](https://github.com/astral-sh/ruff)
-[![Tests](https://img.shields.io/badge/tests-pytest-0A9EDC?style=flat-square&logo=pytest)](https://docs.pytest.org)
-[![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
+ReconX is a small, dependency-light command line tool for **passive reconnaissance** against a single domain. It answers the questions you ask in the first ten minutes of an authorised assessment:
 
-ReconX collects publicly available information about a domain and prints it in a
-form you can read, pipe, or commit. It is intentionally **passive**: it reads DNS
-records, WHOIS, HTTP response headers, and certificate-transparency logs. It
-does not exploit, brute-force, or scan.
-
-```bash
-reconx example.com --modules dns,http,tls,subdomains --format json -o report.json
-```
+- What does this domain resolve to (A / AAAA / MX / NS / TXT / CNAME / SOA)?
+- Who owns it (WHOIS / RDAP registration data)?
+- What does the web server say (status, headers, redirect chain, response time, security headers)?
+- What certificate is being served (issuer, SANs, expiry, protocol version)?
+- What is it built with (light fingerprinting from headers and HTML meta tags)?
+- What subdomains exist (certificate transparency logs + small wordlist resolution)?
 
 ---
 
-## What it does
-
-| Module | What you learn | Source |
-| --- | --- | --- |
-| `dns` | A / AAAA / MX / NS / TXT / CNAME / SOA records | dnspython |
-| `whois` | Registrar, creation/expiry dates, nameservers, status | WHOIS servers |
-| `http` | Status, redirect chain, timing, security-header audit | HTTPS then HTTP |
-| `tls` | Issuer, subject, SANs, expiry countdown, protocol | TLS handshake |
-| `tech` | Server/CMS/framework/CDN fingerprints | Response headers + HTML |
-| `subdomains` | Discovered hostnames | crt.sh + wordlist DNS |
-
-Every module is independent. If WHOIS times out, you still get your DNS, HTTP,
-and TLS results — a failing module records an `error` field instead of aborting
-the run.
+> [!IMPORTANT]
+> **Use ReconX only on domains you own or are explicitly authorised to test.**
+> ReconX is a passive/low-intrusion information gathering tool. It performs public
+> lookups (DNS, WHOIS, TLS handshake, ordinary HTTP `GET` requests, crt.sh).
+> It contains no exploit code, no credential attacks and no port scanning.
+> Unauthorised use may be illegal in your jurisdiction and can get you and your
+> organisation in serious trouble.
 
 ---
 
-## Install
-
-Requires Python 3.10 or newer.
+## Installation
 
 ```bash
 git clone https://github.com/hsay123/ReconX.git
 cd ReconX
 
-python -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
+python -m venv .venv && source .venv/bin/activate    # Windows: .venv\Scripts\activate
 
-pip install -e .
+pip install -e .          # runtime deps
+pip install -e ".[dev]"   # + ruff, pytest, pytest-cov (for development)
 ```
 
-Development install with the test and lint tooling:
+Requires **Python 3.10 or newer**. Runtime dependencies: `requests`, `dnspython`, `python-whois`, and `rich` (optional, for coloured console output).
+
+Verify the install:
 
 ```bash
-pip install -e ".[dev]"
+reconx --version
+```
+
+You can also run it without installing:
+
+```bash
+python -m reconx example.com
+```
+
+---
+
+## Quick start
+
+```bash
+# Default modules (dns, http, tls, whois, tech) as a coloured console summary
+reconx example.com
+
+# Everything, machine readable, written to a file
+reconx example.com --modules all --format json -o report.json
+
+# Only the interesting bits
+reconx example.com --modules dns,tls,subdomains
+
+# A slower, wider subdomain sweep with your own wordlist
+reconx example.com --modules subdomains --wordlist words.txt --concurrency 8 --timeout 20
 ```
 
 ---
@@ -60,171 +72,116 @@ pip install -e ".[dev]"
 ## Usage
 
 ```
-reconx [OPTIONS] DOMAIN
+reconx [-h] [-m MODULES] [-f {text,json,md,html}] [-o OUTPUT] [-v]
+       [--timeout TIMEOUT] [--concurrency CONCURRENCY] [--wordlist WORDLIST]
+       [--version] target
 ```
 
 | Option | Default | Description |
 | --- | --- | --- |
-| `DOMAIN` | required | Target domain, e.g. `example.com` |
-| `-m, --modules` | all | Comma-separated subset of `dns,whois,http,tls,tech,subdomains` |
-| `--timeout` | `10.0` | Per-request timeout in seconds |
-| `--max-workers` | `10` | Concurrency cap for wordlist resolution |
-| `--wordlist` | built-in | Path to a custom subdomain wordlist |
-| `--no-crtsh` | off | Skip the certificate-transparency lookup |
-| `-f, --format` | `text` | Output format: `text`, `json`, `md`, `html` |
-| `-o, --output` | stdout | Write the report to a file instead of stdout |
-| `-v, --verbose` | off | Show warnings and per-module progress on stderr |
-| `--version` | | Print the version and exit |
-| `--legal` | | Print the authorization notice and exit |
+| `target` | – | Domain to inspect, e.g. `example.com`. Scheme, port, path and `www.` are normalised away automatically. |
+| `-m`, `--modules` | `dns,http,tls,whois,tech` | Comma separated list of modules, or `all`. |
+| `-f`, `--format` | `text` | `text` (console summary), `json`, `md` (Markdown), `html` (self-contained report). |
+| `-o`, `--output` | stdout | Write the report to a file instead of stdout. |
+| `--timeout` | `10` | Per-request timeout in seconds (2–120). |
+| `--concurrency` | `8` | Threads used for wordlist resolution (1–32). |
+| `--wordlist` | bundled list | Path to a newline-delimited subdomain wordlist. |
+| `-v`, `--verbose` | off | Show per-module errors and timing on stderr. |
+| `--version` | – | Print the version and exit. |
 
-The domain is normalized for you, so `https://www.example.com/path?q=1`,
-`www.example.com` and `example.com` are all accepted and reduced to a clean
-registrable-looking hostname.
+### Modules
 
-### Examples
+| Module | What it collects |
+| --- | --- |
+| `dns` | `A`, `AAAA`, `MX`, `NS`, `TXT`, `CNAME`, `SOA` records via dnspython. |
+| `http` | HTTPS-then-HTTP probe, redirect chain, status, response time, and a security header audit (HSTS, CSP, X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy) with a pass/missing score. |
+| `tls` | Certificate issuer, subject, SANs, validity window, days to expiry, negotiated protocol/cipher. |
+| `whois` | Registrar, creation/expiry dates, name servers, status, registrant country. |
+| `tech` | Light fingerprinting from headers and HTML meta/script signatures. |
+| `subdomains` | Passive crt.sh lookups plus optional wordlist resolution, with wildcard detection and concurrency capping. |
 
-Everything, human-readable:
-
-```bash
-reconx example.com
-```
-
-Just DNS and TLS, as JSON:
-
-```bash
-reconx example.com --modules dns,tls --format json
-```
-
-Markdown for a report, with a slower timeout for a slow target:
-
-```bash
-reconx example.com --format md --timeout 20 -o recon.md
-```
-
-Self-contained HTML you can open or email:
-
-```bash
-reconx example.com --format html -o report.html
-```
-
-Subdomain discovery with your own wordlist and a conservative concurrency cap:
-
-```bash
-reconx example.com --modules subdomains --wordlist words.txt --max-workers 5
-```
-
-### Sample output
-
-```text
-============================================================
- ReconX 0.2.0 - passive recon for example.com
- 2026-10-01T23:10:04Z - 4 modules - 2.31s
-============================================================
-
-DNS
-  A       93.184.216.34
-  AAAA    2606:2800:220:1:248:1893:25c8:1946
-  MX      10 mail.example.com  (pref 10)
-  NS      a.iana-servers.net
-  TXT     v=spf1 -all
-
-HTTP
-  URL         https://example.com
-  Status      200 OK
-  Time        184 ms
-  Redirects   0
-  Headers     12 items
-  Security    4/6 present  [!] content-security-policy, permissions-policy
-
-TLS
-  Issuer     DigiCert Inc - DigiCert TLS RSA SHA256 2020 CA1
-  Subject    CN=example.com
-  Expires    2026-11-24 (54 days)
-  Protocol   TLSv1.3
-
-TECH
-  Server        gws
-  Generator     (none)
-  Detected      gws, nginx
-
-SUBDOMAINS
-  crt.sh        3 names
-  wordlist      2 resolved / 40 tried
-  Total         5
-    example.com
-    mail.example.com
-    www.example.com
-
-============================================================
- Done in 2.31s - 5 subdomains - 2 warnings
- Full JSON report: reconx example.com --format json
-============================================================
-```
+Every module is isolated: if one fails (rate limited, unreachable, blocked), it reports an
+`error` field and the remaining modules still run.
 
 ---
 
-## Safety and scope
+## Output
 
-> **Use ReconX only on domains you own or are explicitly authorized to test.**
-> Unauthorized reconnaissance can be unlawful in many jurisdictions.
+`--format json` emits a stable, machine-readable document:
 
-The design enforces that boundary:
+```json
+{
+  "tool": "reconx",
+  "version": "0.2.0",
+  "target": "example.com",
+  "generated_at": "2026-10-01T12:00:00+00:00",
+  "duration_seconds": 1.842,
+  "modules": ["dns", "http"],
+  "results": {
+    "dns": {
+      "target": "example.com",
+      "A": ["93.184.216.34"],
+      "AAAA": [],
+      "MX": [],
+      "NS": ["a.iana-servers.net.", "b.iana-servers.net."],
+      "TXT": [],
+      "CNAME": [],
+      "SOA": null,
+      "error": null
+    },
+    "http": { "...": "see --format json output" }
+  },
+  "errors": []
+}
+```
 
-- **Passive sources only.** DNS, WHOIS, TLS handshake metadata, HTTP headers, and
-  the public crt.sh transparency log. Nothing is exploited or authenticated.
-- **No port scanning, no payloads, no credential testing.** There is no such code
-  in this repository.
-- **Bounded work.** Every network call has a timeout, wordlist resolution uses a
-  thread pool with a hard concurrency cap, and requests carry a descriptive
-  user-agent.
-- **Small default wordlist.** A few dozen common hostnames, not an aggressive
-  brute-force list.
+All lists are sorted and de-duplicated, so two runs against an unchanged target produce
+byte-identical output apart from `generated_at` and `duration_seconds`.
 
-Run `reconx --legal` to print the notice.
+`--format md` produces a Markdown report and `--format html` a single-file HTML report —
+both suitable for attaching to a write-up.
+
+---
+
+## Responsible use
+
+ReconX is intended for defensive security work, bug bounties and assessments you are
+authorised to perform.
+
+- It only reads public data and sends one ordinary `GET` per host.
+- It does not scan ports, brute force credentials or attempt exploitation.
+- Concurrency is capped (`--concurrency`) and every request has a timeout, so it will not
+  flood a target.
+- Please keep request volume low when scanning third-party infrastructure, and prefer the
+  passive (`crt.sh`) subdomain source when you only need names.
+
+---
 
 ## Development
 
 ```bash
 pip install -e ".[dev]"
 
-ruff check .                 # lint
-ruff format --check .        # formatting
-pytest -q                   # tests (all network access is mocked)
-pytest --cov=reconx          # coverage
+ruff check .
+ruff format --check .
+pytest -q                       # unit tests, fully mocked — no network access
+pytest --cov=reconx --cov-report=term-missing
 ```
 
-The test suite never touches the network: DNS, WHOIS, and HTTP are mocked, so
-`pytest` is safe to run offline and in CI.
-
-## Project layout
-
-```
-reconx/
-├── cli.py            # argparse front end
-├── core.py           # orchestration, error isolation
-├── dns_info.py       # DNS records
-├── whois_info.py     # WHOIS
-├── http_info.py      # HTTP + security headers
-├── tls_info.py       # TLS certificate
-├── fingerprint.py    # technology detection
-├── subdomains.py     # crt.sh + wordlist
-├── report.py         # json / md / html renderers
-├── render.py         # console summary
-└── data/words.txt    # default subdomain wordlist
-```
+See [NOTES.md](NOTES.md) for the full command list, [ARCHITECTURE.md](ARCHITECTURE.md) for the
+module design, and [CHANGELOG.md](CHANGELOG.md) for release history.
 
 ## Roadmap
 
-- [x] CLI, modular architecture, JSON/Markdown/HTML reports
-- [x] DNS, WHOIS, HTTP, TLS, fingerprint, subdomain modules
-- [x] Mocked test suite and CI
-- [ ] More fingerprint signatures and confidence scoring
-- [ ] Optional custom DNS resolver selection
-- [ ] Diff two scans to spot infrastructure changes over time
+- More output targets (CSV, SARIF).
+- Optional JSON/YAML config files for recurring engagements.
+- Deeper fingerprinting (JS library and analytics detection).
+- Historical DNS / passive DNS enrichment.
 
-See [TODO.md](TODO.md) for the full list and [ARCHITECTURE.md](ARCHITECTURE.md)
-for design detail.
+See [TODO.md](TODO.md) for the working list.
+
+---
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE).
