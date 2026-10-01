@@ -1,200 +1,230 @@
-# 💸 RupeeLink
+# ReconX
 
-> **P2P INR ↔ USDC Trading Platform on Monad Testnet**
+> Passive website reconnaissance CLI. One command, a full picture of a domain.
 
-[![Next.js](https://img.shields.io/badge/Next.js-16-black?style=flat-square&logo=next.js)](https://nextjs.org)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=flat-square&logo=typescript)](https://typescriptlang.org)
-[![Solidity](https://img.shields.io/badge/Solidity-^0.8-363636?style=flat-square&logo=solidity)](https://soliditylang.org)
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed-Vercel-000?style=flat-square&logo=vercel)](https://rupeelink.vercel.app)
-[![Monad Testnet](https://img.shields.io/badge/Network-Monad%20Testnet-6366F1?style=flat-square)](https://monad.xyz)
+[![Python](https://img.shields.io/badge/python-3.10%2B-3178C6?style=flat-square&logo=python)](https://www.python.org)
+[![Ruff](https://img.shields.io/badge/lint-ruff-000000?style=flat-square)](https://github.com/astral-sh/ruff)
+[![Tests](https://img.shields.io/badge/tests-pytest-0A9EDC?style=flat-square&logo=pytest)](https://docs.pytest.org)
+[![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 
-RupeeLink lets users trade Indian Rupees for USDC stablecoins peer-to-peer — no centralized exchange needed. Buyers pay via Razorpay (UPI/IMPS/NEFT) and receive USDC directly to their wallet through a Solidity escrow smart contract on Monad Testnet.
-
-🔗 **Live:** [rupeelink.vercel.app](https://rupeelink.vercel.app) &nbsp;|&nbsp; 📄 **Contract:** [`0x736d728451D0E6d649373c533269317EDb68710c`](https://testnet.monadexplorer.com/address/0x736d728451D0E6d649373c533269317EDb68710c)
-
----
-
-## ✨ Features
-
-- **P2P Escrow** — Seller locks USDC in contract; funds release only after verified INR payment
-- **Razorpay Integration** — UPI, IMPS, NEFT, bank transfer support
-- **Non-Custodial** — Users retain full wallet ownership; private keys never touch the server
-- **Clerk Auth** — Seamless sign-up/login with wallet address linkage
-- **Real-time Trade Status** — `OPEN → PAYMENT_PENDING → COMPLETED`
-- **Monad Testnet** — EVM-compatible, high throughput, low fees
-
----
-
-## 🛠 Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| Framework | Next.js 16, TypeScript 5, App Router |
-| Styling | Tailwind CSS, shadcn/ui, Framer Motion |
-| Auth | Clerk |
-| Blockchain | ethers.js v6, Solidity, Monad Testnet |
-| Database | Prisma ORM + Neon PostgreSQL |
-| Payments | Razorpay SDK |
-| Deployment | Vercel |
-
----
-
-## 🔄 How It Works
-
-```
-Seller deposits USDC → Contract locks funds
-        ↓
-Buyer initiates trade + pays INR via Razorpay
-        ↓
-Backend verifies Razorpay webhook (payment_captured)
-        ↓
-Smart contract releases USDC to buyer's wallet
-        ↓
-Trade record updated in PostgreSQL
-```
-
----
-
-## 📁 Project Structure
-
-```
-rupeelink/
-├── app/
-│   ├── (auth)/          # Clerk auth pages
-│   ├── api/
-│   │   ├── trades/      # Trade CRUD endpoints
-│   │   ├── razorpay/    # Payment creation & webhook
-│   │   └── contract/    # Smart contract interactions
-│   ├── dashboard/       # User dashboard
-│   ├── trades/          # Trade listings & detail
-│   └── page.tsx         # Landing page
-├── components/          # Reusable UI (shadcn/ui)
-├── contracts/
-│   └── RupeeLink.sol    # Escrow smart contract
-├── lib/
-│   ├── prisma.ts        # Prisma client singleton
-│   ├── ethers.ts        # ethers.js helpers
-│   └── razorpay.ts      # Razorpay SDK wrapper
-├── prisma/
-│   └── schema.prisma    # Database schema
-└── package.json
-```
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Node.js 18+
-- MetaMask (connected to Monad Testnet)
-- Razorpay test account
-- Clerk account
-- Neon PostgreSQL project
-
-### Installation
+ReconX collects publicly available information about a domain and prints it in a
+form you can read, pipe, or commit. It is intentionally **passive**: it reads DNS
+records, WHOIS, HTTP response headers, and certificate-transparency logs. It
+does not exploit, brute-force, or scan.
 
 ```bash
-git clone https://github.com/hsay123/RupeeLink.git
-cd RupeeLink
-npm install
-cp .env.example .env.local   # fill in your values
-npx prisma generate
-npx prisma db push
-npm run dev
-```
-
-> **Always run `npm run build` locally before pushing to Vercel.**
-
----
-
-## 🔑 Environment Variables
-
-```env
-# Clerk
-NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
-CLERK_SECRET_KEY=
-
-# Database
-DATABASE_URL=
-
-# Razorpay
-RAZORPAY_KEY_ID=
-RAZORPAY_KEY_SECRET=
-NEXT_PUBLIC_RAZORPAY_KEY_ID=
-RAZORPAY_WEBHOOK_SECRET=
-
-# Blockchain
-NEXT_PUBLIC_CONTRACT_ADDRESS=0x736d728451D0E6d649373c533269317EDb68710c
-NEXT_PUBLIC_MONAD_RPC_URL=
+reconx example.com --modules dns,http,tls,subdomains --format json -o report.json
 ```
 
 ---
 
-## 📜 Smart Contract
+## What it does
 
-- **Network:** Monad Testnet
-- **Address:** `0x736d728451D0E6d649373c533269317EDb68710c`
-- **Language:** Solidity `^0.8`
-- **Model:** Seller deposits USDC → Buyer pays INR → Contract releases USDC
+| Module | What you learn | Source |
+| --- | --- | --- |
+| `dns` | A / AAAA / MX / NS / TXT / CNAME / SOA records | dnspython |
+| `whois` | Registrar, creation/expiry dates, nameservers, status | WHOIS servers |
+| `http` | Status, redirect chain, timing, security-header audit | HTTPS then HTTP |
+| `tls` | Issuer, subject, SANs, expiry countdown, protocol | TLS handshake |
+| `tech` | Server/CMS/framework/CDN fingerprints | Response headers + HTML |
+| `subdomains` | Discovered hostnames | crt.sh + wordlist DNS |
 
-To redeploy:
+Every module is independent. If WHOIS times out, you still get your DNS, HTTP,
+and TLS results — a failing module records an `error` field instead of aborting
+the run.
+
+---
+
+## Install
+
+Requires Python 3.10 or newer.
 
 ```bash
-npx hardhat run scripts/deploy.js --network monadTestnet
-# Update NEXT_PUBLIC_CONTRACT_ADDRESS in .env.local
+git clone https://github.com/hsay123/ReconX.git
+cd ReconX
+
+python -m venv .venv
+source .venv/bin/activate          # Windows: .venv\Scripts\activate
+
+pip install -e .
+```
+
+Development install with the test and lint tooling:
+
+```bash
+pip install -e ".[dev]"
 ```
 
 ---
 
-## 🗄 Database Schema
+## Usage
 
-```prisma
-model User {
-  id         String   @id @default(cuid())
-  clerkId    String   @unique
-  walletAddr String?
-  trades     Trade[]
-}
+```
+reconx [OPTIONS] DOMAIN
+```
 
-model Trade {
-  id              String      @id @default(cuid())
-  sellerId        String
-  buyerId         String?
-  usdcAmount      Float
-  inrAmount       Float
-  status          TradeStatus
-  razorpayOrderId String?
-  txHash          String?
-  createdAt       DateTime    @default(now())
-}
+| Option | Default | Description |
+| --- | --- | --- |
+| `DOMAIN` | required | Target domain, e.g. `example.com` |
+| `-m, --modules` | all | Comma-separated subset of `dns,whois,http,tls,tech,subdomains` |
+| `--timeout` | `10.0` | Per-request timeout in seconds |
+| `--max-workers` | `10` | Concurrency cap for wordlist resolution |
+| `--wordlist` | built-in | Path to a custom subdomain wordlist |
+| `--no-crtsh` | off | Skip the certificate-transparency lookup |
+| `-f, --format` | `text` | Output format: `text`, `json`, `md`, `html` |
+| `-o, --output` | stdout | Write the report to a file instead of stdout |
+| `-v, --verbose` | off | Show warnings and per-module progress on stderr |
+| `--version` | | Print the version and exit |
+| `--legal` | | Print the authorization notice and exit |
 
-enum TradeStatus { OPEN PAYMENT_PENDING COMPLETED CANCELLED }
+The domain is normalized for you, so `https://www.example.com/path?q=1`,
+`www.example.com` and `example.com` are all accepted and reduced to a clean
+registrable-looking hostname.
+
+### Examples
+
+Everything, human-readable:
+
+```bash
+reconx example.com
+```
+
+Just DNS and TLS, as JSON:
+
+```bash
+reconx example.com --modules dns,tls --format json
+```
+
+Markdown for a report, with a slower timeout for a slow target:
+
+```bash
+reconx example.com --format md --timeout 20 -o recon.md
+```
+
+Self-contained HTML you can open or email:
+
+```bash
+reconx example.com --format html -o report.html
+```
+
+Subdomain discovery with your own wordlist and a conservative concurrency cap:
+
+```bash
+reconx example.com --modules subdomains --wordlist words.txt --max-workers 5
+```
+
+### Sample output
+
+```text
+============================================================
+ ReconX 0.2.0 - passive recon for example.com
+ 2026-10-01T23:10:04Z - 4 modules - 2.31s
+============================================================
+
+DNS
+  A       93.184.216.34
+  AAAA    2606:2800:220:1:248:1893:25c8:1946
+  MX      10 mail.example.com  (pref 10)
+  NS      a.iana-servers.net
+  TXT     v=spf1 -all
+
+HTTP
+  URL         https://example.com
+  Status      200 OK
+  Time        184 ms
+  Redirects   0
+  Headers     12 items
+  Security    4/6 present  [!] content-security-policy, permissions-policy
+
+TLS
+  Issuer     DigiCert Inc - DigiCert TLS RSA SHA256 2020 CA1
+  Subject    CN=example.com
+  Expires    2026-11-24 (54 days)
+  Protocol   TLSv1.3
+
+TECH
+  Server        gws
+  Generator     (none)
+  Detected      gws, nginx
+
+SUBDOMAINS
+  crt.sh        3 names
+  wordlist      2 resolved / 40 tried
+  Total         5
+    example.com
+    mail.example.com
+    www.example.com
+
+============================================================
+ Done in 2.31s - 5 subdomains - 2 warnings
+ Full JSON report: reconx example.com --format json
+============================================================
 ```
 
 ---
 
-## 🗺 Roadmap
+## Safety and scope
 
-- [x] P2P escrow smart contract
-- [x] Razorpay INR payment integration
-- [x] Clerk authentication + wallet linking
-- [x] PostgreSQL trade tracking
-- [ ] Dispute resolution mechanism
-- [ ] User reputation & ratings
-- [ ] Multi-stablecoin support (USDT, DAI)
-- [ ] Monad mainnet deployment
+> **Use ReconX only on domains you own or are explicitly authorized to test.**
+> Unauthorized reconnaissance can be unlawful in many jurisdictions.
 
----
+The design enforces that boundary:
 
-**Yash** · [github.com/hsay123](https://github.com/hsay123)
+- **Passive sources only.** DNS, WHOIS, TLS handshake metadata, HTTP headers, and
+  the public crt.sh transparency log. Nothing is exploited or authenticated.
+- **No port scanning, no payloads, no credential testing.** There is no such code
+  in this repository.
+- **Bounded work.** Every network call has a timeout, wordlist resolution uses a
+  thread pool with a hard concurrency cap, and requests carry a descriptive
+  user-agent.
+- **Small default wordlist.** A few dozen common hostnames, not an aggressive
+  brute-force list.
 
----
+Run `reconx --legal` to print the notice.
 
-*Built on Monad Testnet. Not for production use with real funds.*
+## Development
 
-Last updated: Mon Jul 20 17:43:12 UTC 2026
+```bash
+pip install -e ".[dev]"
 
-Last updated: Mon Jul 20 17:43:17 UTC 2026
+ruff check .                 # lint
+ruff format --check .        # formatting
+pytest -q                   # tests (all network access is mocked)
+pytest --cov=reconx          # coverage
+```
 
-Last updated: Sat Aug 15 17:39:29 UTC 2026
+The test suite never touches the network: DNS, WHOIS, and HTTP are mocked, so
+`pytest` is safe to run offline and in CI.
+
+## Project layout
+
+```
+reconx/
+├── cli.py            # argparse front end
+├── core.py           # orchestration, error isolation
+├── dns_info.py       # DNS records
+├── whois_info.py     # WHOIS
+├── http_info.py      # HTTP + security headers
+├── tls_info.py       # TLS certificate
+├── fingerprint.py    # technology detection
+├── subdomains.py     # crt.sh + wordlist
+├── report.py         # json / md / html renderers
+├── render.py         # console summary
+└── data/words.txt    # default subdomain wordlist
+```
+
+## Roadmap
+
+- [x] CLI, modular architecture, JSON/Markdown/HTML reports
+- [x] DNS, WHOIS, HTTP, TLS, fingerprint, subdomain modules
+- [x] Mocked test suite and CI
+- [ ] More fingerprint signatures and confidence scoring
+- [ ] Optional custom DNS resolver selection
+- [ ] Diff two scans to spot infrastructure changes over time
+
+See [TODO.md](TODO.md) for the full list and [ARCHITECTURE.md](ARCHITECTURE.md)
+for design detail.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
