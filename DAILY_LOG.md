@@ -46,3 +46,7 @@
   Checked a real example.com certificate in as a DER fixture rather than
   hand-rolling DER bytes, so the parser is tested against real ASN.1
   (multi-byte OIDs, long-form lengths, UTCTime). 163 tests passing.
+- Step 9: added the `tech` module — fingerprinting from `Server` and
+  `X-Powered-By`, the `generator` meta tag, and script/link asset URLs. Each
+  match carries high/low confidence so a `jquery` substring in a filename is
+  not presented as fact. 187 tests passing.

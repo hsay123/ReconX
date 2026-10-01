@@ -38,3 +38,7 @@
   returns nothing when verification is off and raises when it is on — which
   means a broken certificate, the interesting case, could not be reported.
   Only 443 is ever contacted.
+- feat: light technology fingerprinting from `Server` / `X-Powered-By` headers,
+  the `generator` meta tag and script/link asset URLs. Matches carry a
+  confidence level — `high` for something that names the technology outright,
+  `low` for a filename that only suggests it.

@@ -20,7 +20,7 @@ from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Any
 
-from . import dns_info, http_info, subdomains, tls_info, whois_info
+from . import dns_info, fingerprint, http_info, subdomains, tls_info, whois_info
 from .context import ReconContext, default_context
 
 __all__ = [
@@ -115,6 +115,7 @@ _MODULES: dict[str, ModuleRunner] = {
     "dns": dns_info.lookup,
     "http": http_info.lookup,
     "subdomains": subdomains.lookup,
+    "tech": fingerprint.lookup,
     "tls": tls_info.lookup,
     "whois": whois_info.lookup,
 }

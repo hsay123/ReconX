@@ -10,7 +10,7 @@
 - [x] 6. feat: subdomain discovery (crt.sh + capped wordlist resolution)
 - [x] 7. feat: HTTP module with redirect chain and security-header audit
 - [x] 8. feat: TLS module
-- [ ] 9. feat: lightweight technology fingerprinting
+- [x] 9. feat: lightweight technology fingerprinting
 - [ ] 10. feat: JSON / Markdown / HTML reporting and console summary
 - [ ] 11. test: mocked pytest suite, >= 80% coverage on the package
 - [ ] 12. ci: GitHub Actions (ruff + pytest + coverage, Python 3.10-3.12)
