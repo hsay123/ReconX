@@ -5,7 +5,7 @@
 - [x] 1. docs: Replace the stale RupeeLink README with an accurate ReconX README
 - [x] 2. chore: pyproject.toml, console script, .gitignore, ruff config, LICENSE
 - [x] 3. refactor: move to a `reconx/` package, functions return dicts
-- [ ] 4. feat: argparse CLI with domain normalization
+- [x] 4. feat: argparse CLI with domain normalization
 - [ ] 5. feat: DNS module on dnspython (drop the broken `dig *.domain` call)
 - [ ] 6. feat: subdomain discovery (crt.sh + capped wordlist resolution)
 - [ ] 7. feat: HTTP module with redirect chain and security-header audit

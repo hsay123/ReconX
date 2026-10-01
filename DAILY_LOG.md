@@ -14,3 +14,7 @@
   and `whois_info` return dicts and report failures as an `error` key.
   `ReconX.py` stays as a shim over the old function names. Added the first unit
   tests for `core` (27 passing, no network access).
+- Step 4: added `reconx/cli.py` and `python -m reconx`. Domain normalization
+  strips scheme/port/path and rejects junk with exit code 2; JSON output is
+  sorted and machine readable. 44 tests passing. Verified `reconx example.com
+  --modules dns --format json` end to end.

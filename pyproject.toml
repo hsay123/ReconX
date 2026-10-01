@@ -46,6 +46,9 @@ Repository = "https://github.com/hsay123/ReconX"
 Issues = "https://github.com/hsay123/ReconX/issues"
 Changelog = "https://github.com/hsay123/ReconX/blob/main/CHANGELOG.md"
 
+[project.scripts]
+reconx = "reconx.cli:main"
+
 [tool.hatch.build.targets.wheel]
 packages = ["reconx"]
 
@@ -107,6 +110,9 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["ANN", "D", "S101", "ARG", "PTH"]
+# The CLI's entire job is writing to stdout/stderr.
+"reconx/cli.py" = ["T201", "T203"]
+"reconx/__main__.py" = ["T201"]
 # Legacy interactive shim: printing to stdout is its whole purpose.
 "ReconX.py" = ["D", "ANN", "E402", "F401", "S603", "S607", "T20"]
 
