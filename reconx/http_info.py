@@ -14,20 +14,24 @@ from typing import Any
 
 import requests
 
-__all__ = ["USER_AGENT", "build_session", "lookup"]
+from .context import ReconContext, default_context
+
+__all__ = ["build_session", "lookup", "user_agent"]
 
 LOGGER = logging.getLogger(__name__)
 
-#: Identifies the tool to operators instead of hiding behind a browser string.
-USER_AGENT = "ReconX/0.2.0 (+https://github.com/hsay123/ReconX; passive recon)"
+
+def user_agent(context: ReconContext | None = None) -> str:
+    """Return the ``User-Agent`` to identify ReconX to operators."""
+    return (context or default_context()).user_agent
 
 
-def build_session() -> requests.Session:
+def build_session(context: ReconContext | None = None) -> requests.Session:
     """Return a session carrying ReconX's identifying headers."""
     session = requests.Session()
     session.headers.update(
         {
-            "User-Agent": USER_AGENT,
+            "User-Agent": user_agent(context),
             "Accept": "text/html,application/xhtml+xml,*/*;q=0.8",
             "Accept-Language": "en-US,en;q=0.5",
         }
@@ -37,7 +41,7 @@ def build_session() -> requests.Session:
 
 def lookup(
     domain: str,
-    timeout: float = 10.0,
+    context: ReconContext | None = None,
     session: requests.Session | None = None,
 ) -> dict[str, Any]:
     """Fetch the HTTP(S) response for ``domain``.
@@ -46,7 +50,7 @@ def lookup(
 
     Args:
         domain: A normalized domain name.
-        timeout: Per-request timeout in seconds.
+        context: Shared run settings; supplies the per-request timeout.
         session: An optional prebuilt session, mainly for tests.
 
     Returns:
@@ -54,6 +58,8 @@ def lookup(
         lowercased ``headers``, or an ``error`` key when neither protocol
         responded. Never raises.
     """
+    ctx = context or default_context()
+    timeout = ctx.timeout
     active = session or build_session()
     owns_session = session is None
     attempts: list[dict[str, Any]] = []

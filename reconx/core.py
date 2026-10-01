@@ -21,6 +21,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from . import dns_info, http_info, whois_info
+from .context import ReconContext, default_context
 
 __all__ = [
     "ALL_MODULES",
@@ -40,8 +41,10 @@ LOGGER = logging.getLogger(__name__)
 #: Default per-request timeout, in seconds.
 DEFAULT_TIMEOUT = 10.0
 
-#: A recon module: takes the target domain and returns a JSON-safe dict.
-ModuleRunner = Callable[[str], dict[str, Any]]
+#: A recon module: takes the target domain plus the shared run context and
+#: returns a JSON-safe dict. Modules must tolerate being handed a context they
+#: do not care about, so the signature never grows per-module options.
+ModuleRunner = Callable[[str, "ReconContext"], dict[str, Any]]
 
 LEGAL_NOTICE = (
     "ReconX performs passive reconnaissance. Use it only on domains you own "
@@ -163,12 +166,12 @@ def resolve_modules(requested: list[str] | None) -> list[str]:
     return [name for name in ALL_MODULES if name in wanted]
 
 
-def _run_one(name: str, domain: str) -> dict[str, Any]:
+def _run_one(name: str, domain: str, context: ReconContext) -> dict[str, Any]:
     """Run a single module, converting any failure into an ``error`` field."""
     runner = _MODULES[name]
     started = time.perf_counter()
     try:
-        result = runner(domain)
+        result = runner(domain, context)
     except Exception as exc:
         LOGGER.debug("module %s raised", name, exc_info=True)
         return {
@@ -203,12 +206,17 @@ def _summarize(results: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def run(domain: str, modules: list[str] | None = None) -> dict[str, Any]:
+def run(
+    domain: str,
+    modules: list[str] | None = None,
+    context: ReconContext | None = None,
+) -> dict[str, Any]:
     """Run the requested recon modules against ``domain``.
 
     Args:
         domain: A target domain. Normalized before use.
         modules: Module names to run, or ``None`` for all of them.
+        context: Shared run settings. Defaults to :func:`default_context`.
 
     Returns:
         A report dict with ``target``, ``generated_at``, ``duration_seconds``,
@@ -220,9 +228,10 @@ def run(domain: str, modules: list[str] | None = None) -> dict[str, Any]:
     """
     target = normalize_domain(domain)
     selected = resolve_modules(modules)
+    ctx = context or default_context()
 
     started = time.perf_counter()
-    results: dict[str, Any] = {name: _run_one(name, target) for name in selected}
+    results: dict[str, Any] = {name: _run_one(name, target, ctx) for name in selected}
     duration = round(time.perf_counter() - started, 3)
 
     from . import __version__

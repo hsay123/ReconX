@@ -16,3 +16,10 @@
   `--timeout`, `--concurrency`, `--wordlist`, `-v/--verbose` and `--version`.
   Input normalization accepts what people actually paste (URLs, ports, paths)
   and rejects invalid domains with exit code 2.
+- feat: DNS module on dnspython covering A, AAAA, MX, NS, TXT, CNAME and SOA
+  with per-query timeouts. Replaces `socket.gethostbyname` and drops the old
+  `subprocess` call to `dig *.example.com`, which was never valid DNS and so
+  silently found nothing.
+- feat: modules now take a shared `ReconContext` (timeout, concurrency,
+  wordlist) rather than bespoke arguments, so `--timeout` actually reaches the
+  network layer.

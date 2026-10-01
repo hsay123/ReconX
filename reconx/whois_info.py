@@ -12,6 +12,8 @@ from typing import Any
 
 import whois
 
+from .context import ReconContext
+
 __all__ = ["REGISTRAR_FIELDS", "lookup", "parse_whois_data"]
 
 LOGGER = logging.getLogger(__name__)
@@ -86,16 +88,19 @@ def parse_whois_data(data: Any) -> dict[str, Any]:
     return parsed
 
 
-def lookup(domain: str) -> dict[str, Any]:
+def lookup(domain: str, context: ReconContext | None = None) -> dict[str, Any]:
     """Look up WHOIS registration data for ``domain``.
 
     Args:
         domain: A normalized domain name.
+        context: Shared run settings. Unused here: python-whois manages its own
+            socket timeouts, which is why WHOIS is not covered by --timeout.
 
     Returns:
         A dict with parsed registration fields, plus an ``error`` key holding a
         short message when the lookup fails. Never raises.
     """
+    del context  # accepted for a uniform module signature; see the docstring
     try:
         data = whois.whois(domain)
     except Exception as exc:  # third-party lib raises broadly

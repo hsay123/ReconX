@@ -18,3 +18,9 @@
   strips scheme/port/path and rejects junk with exit code 2; JSON output is
   sorted and machine readable. 44 tests passing. Verified `reconx example.com
   --modules dns --format json` end to end.
+- Step 5: replaced the stdlib `socket` resolver with dnspython and dropped the
+  `subprocess` `dig *.domain` call, which was not valid DNS and never returned
+  anything. A/AAAA/MX/NS/TXT/CNAME/SOA now come back structured, with NXDOMAIN
+  and timeouts distinguished in the error text. Added `ReconContext` so
+  `--timeout`, `--concurrency` and `--wordlist` actually reach the modules
+  instead of being parsed and ignored. 60 tests passing.

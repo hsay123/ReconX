@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any
 
 from . import __version__, core
+from .context import MAX_CONCURRENCY, ReconContext
 
 __all__ = ["LEGAL_NOTICE", "build_parser", "main", "parse_modules"]
 
@@ -119,15 +120,18 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def _run_modules(target: str, args: argparse.Namespace) -> dict[str, Any]:
-    """Execute the requested modules with the options from ``args``.
+def _build_context(args: argparse.Namespace) -> ReconContext:
+    """Turn parsed CLI options into the context modules receive."""
+    return ReconContext(
+        timeout=args.timeout,
+        concurrency=max(1, min(args.concurrency, MAX_CONCURRENCY)),
+        wordlist=Path(args.wordlist) if args.wordlist else None,
+    )
 
-    Options that not-yet-implemented modules would need (concurrency, wordlist)
-    are carried through the run context so later modules can pick them up
-    without changing the orchestration signature.
-    """
-    modules = parse_modules(args.modules)
-    return core.run(target, modules=modules)
+
+def _run_modules(target: str, args: argparse.Namespace) -> dict[str, Any]:
+    """Execute the requested modules with the options from ``args``."""
+    return core.run(target, modules=parse_modules(args.modules), context=_build_context(args))
 
 
 def _render_text(report: dict[str, Any]) -> str:
