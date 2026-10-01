@@ -12,7 +12,7 @@
 - [x] 8. feat: TLS module
 - [x] 9. feat: lightweight technology fingerprinting
 - [x] 10. feat: JSON / Markdown / HTML reporting and console summary
-- [ ] 11. test: mocked pytest suite, >= 80% coverage on the package
+- [x] 11. test: mocked pytest suite, >= 80% coverage on the package
 - [ ] 12. ci: GitHub Actions (ruff + pytest + coverage, Python 3.10-3.12)
 - [ ] 13. docs: ARCHITECTURE.md, sample output, v0.2.0 release entry, tag
 

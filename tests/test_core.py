@@ -6,6 +6,7 @@ with a stub, so the suite is deterministic and offline.
 
 from __future__ import annotations
 
+from collections.abc import Iterator
 from typing import Any
 
 import pytest
@@ -14,16 +15,27 @@ from reconx import core
 
 
 @pytest.fixture(autouse=True)
-def stub_registry(monkeypatch: pytest.MonkeyPatch) -> dict[str, Any]:
-    """Replace every registered module with a deterministic stub."""
+def stub_registry() -> Iterator[dict[str, Any]]:
+    """Replace every registered module with a deterministic stub.
+
+    The whole registry is restored afterwards, so tests that register a module
+    do not leak it into the next test.
+    """
     stubs: dict[str, Any] = {
         "dns": lambda domain, context: {"records": {"A": ["93.184.216.34"]}},
         "http": lambda domain, context: {"status_code": 200, "headers": {}},
         "whois": lambda domain, context: {"registrar": "Test Registrar"},
     }
-    for name, runner in stubs.items():
-        monkeypatch.setitem(core._MODULES, name, runner)
-    return stubs
+    original = dict(core._MODULES)
+    core._MODULES.update(stubs)
+    try:
+        yield stubs
+    finally:
+        # Restore the whole mapping: monkeypatch.setitem only undoes the keys it
+        # touched, so a module added via register_module would otherwise leak
+        # into later tests.
+        core._MODULES.clear()
+        core._MODULES.update(original)
 
 
 class TestNormalizeDomain:
@@ -66,7 +78,7 @@ class TestModuleRegistry:
         assert "dns" in core.available_modules()
 
     def test_resolve_none_returns_all(self):
-        assert core.resolve_modules(None) == list(core.ALL_MODULES)
+        assert core.resolve_modules(None) == list(core.available_modules())
 
     def test_resolve_is_order_independent(self):
         first = core.resolve_modules(["whois", "dns"])
@@ -79,7 +91,33 @@ class TestModuleRegistry:
 
     def test_register_duplicate_rejected(self):
         with pytest.raises(ValueError, match="already registered"):
-            core.register_module("dns", lambda domain: {})
+            core.register_module("dns", lambda domain, context: {})
+
+    def test_register_adds_a_new_module(self):
+        core.register_module("extra", lambda domain, context: {"ok": True})
+        assert "extra" in core.available_modules()
+        assert core.resolve_modules(["extra"]) == ["extra"]
+
+    def test_new_module_runs(self):
+        core.register_module("extra", lambda domain, context: {"ok": True})
+        assert core.run("example.com", modules=["extra"])["results"]["extra"]["ok"] is True
+
+    def test_registry_returns_a_tuple(self):
+        assert isinstance(core.available_modules(), tuple)
+
+    def test_summary_counts_warnings(self, monkeypatch):
+        monkeypatch.setitem(
+            core._MODULES,
+            "dns",
+            lambda domain, context: {"records": {}, "warnings": ["a", "b"]},
+        )
+        report = core.run("example.com", modules=["dns"])
+        assert report["summary"]["warning_count"] == 2
+
+    def test_summary_tolerates_non_dict_entries(self, monkeypatch):
+        monkeypatch.setitem(core._MODULES, "dns", lambda domain, context: ["not", "a", "dict"])
+        report = core.run("example.com", modules=["dns"])
+        assert report["summary"]["modules_run"] == 1
 
 
 class TestRun:

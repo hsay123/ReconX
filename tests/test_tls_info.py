@@ -17,14 +17,14 @@ import pytest
 from reconx import tls_info, x509
 
 FIXTURES = Path(__file__).parent / "fixtures"
-EXAMPLE_DER = FIXTURES / "example.com.der"
+example_der_path = FIXTURES / "example.com.der"
 
 
 @pytest.fixture(scope="session")
 def example_der() -> bytes:
-    if not EXAMPLE_DER.exists():  # pragma: no cover - fixture must ship
+    if not example_der_path.exists():  # pragma: no cover - fixture must ship
         pytest.skip("missing DER fixture")
-    return EXAMPLE_DER.read_bytes()
+    return example_der_path.read_bytes()
 
 
 class FakeSocket:
@@ -196,6 +196,133 @@ class TestParseCertificate:
     def test_as_dict_exposes_every_field(self, example_der):
         fields = x509.parse_certificate(example_der).as_dict()
         assert set(fields) == set(x509.Certificate.__slots__)
+
+
+def der(tag: int, content: bytes) -> bytes:
+    """Build one DER tag-length-value triple.
+
+    Hand-written DER is easy to get subtly wrong, so the structural tests
+    construct their input with this helper instead of counting hex bytes.
+    """
+    assert len(content) < 0x80, "long-form lengths are covered separately"
+    return bytes([tag, len(content)]) + content
+
+
+class TestIterChildren:
+    def test_walks_every_tlv(self):
+        inner = der(0x02, b"\x01") + der(0x02, b"\x02")
+        assert list(x509._iter_children(inner)) == [(0x02, b"\x01"), (0x02, b"\x02")]
+
+    def test_empty_content_yields_nothing(self):
+        assert list(x509._iter_children(b"")) == []
+
+    def test_first_child(self):
+        content = der(0x04, b"ab") + der(0x04, b"cd")
+        assert x509._first_child(content) == b"ab"
+
+    def test_first_child_of_empty_is_empty(self):
+        assert x509._first_child(b"") == b""
+
+
+class TestParseName:
+    @staticmethod
+    def attribute(oid: bytes, value_tag: int, value: bytes) -> bytes:
+        """Build one AttributeTypeAndValue."""
+        return der(0x06, oid) + der(value_tag, value)
+
+    @staticmethod
+    def name(*attributes: bytes) -> bytes:
+        """Build a Name wrapping the given attributes in one RDN."""
+        return der(0x30, b"".join(der(0x31, attribute) for attribute in attributes))
+
+    def test_parses_common_name(self):
+        encoded = self.name(self.attribute(b"\x55\x04\x03", 0x0C, b"example.com"))
+        assert x509.parse_name(encoded) == {"CN": "example.com"}
+
+    def test_unknown_oid_is_kept_numeric(self):
+        # OID 1.2.3.4 (1.2 encoded as 0x2a, then 0x03, 0x04).
+        encoded = self.name(self.attribute(b"\x2a\x03\x04", 0x0C, b"value"))
+        assert x509.parse_name(encoded) == {"1.2.3.4": "value"}
+
+    def test_printable_string_is_decoded(self):
+        encoded = self.name(self.attribute(b"\x55\x04\x0a", 0x13, b"Example Org"))
+        assert x509.parse_name(encoded) == {"O": "Example Org"}
+
+    def test_unknown_string_type_still_decodes(self):
+        # IA5String (0x16) and anything else fall back to utf-8 rather than
+        # being dropped, so a name is never silently lost.
+        encoded = self.name(self.attribute(b"\x55\x04\x03", 0x16, b"example.com"))
+        assert x509.parse_name(encoded) == {"CN": "example.com"}
+
+    def test_bmp_string_is_decoded_as_utf16(self):
+        encoded = self.name(
+            self.attribute(b"\x55\x04\x03", 0x1E, "exämple.com".encode("utf-16-be"))
+        )
+        assert x509.parse_name(encoded) == {"CN": "exämple.com"}
+
+    def test_attribute_with_missing_value_is_skipped(self):
+        encoded = der(0x30, der(0x31, der(0x02, b"\x05")))
+        assert x509.parse_name(encoded) == {}
+
+    def test_non_oid_first_element_is_skipped(self):
+        # An INTEGER where the OID should be: there is nothing to decode, so
+        # it is skipped rather than raising.
+        encoded = der(0x30, der(0x31, der(0x02, b"\x05") + der(0x02, b"\x06")))
+        assert x509.parse_name(encoded) == {}
+
+
+class TestExtractSans:
+    @staticmethod
+    def extension(oid: bytes, octets: bytes) -> bytes:
+        """Build one Extension."""
+        return der(0x30, der(0x06, oid) + der(0x04, octets))
+
+    def test_no_san_extension_returns_empty(self):
+        assert x509._extract_sans(b"") == []
+
+    def test_extension_with_missing_value_is_skipped(self):
+        assert x509._extract_sans(der(0x30, der(0x02, b"\x05"))) == []
+
+    def test_other_extensions_are_ignored(self):
+        # 2.5.29.19 is basicConstraints, not subjectAltName.
+        extensions = self.extension(b"\x55\x1d\x13", der(0x30, der(0x82, b"example.com")))
+        assert x509._extract_sans(extensions) == []
+
+    def test_reads_dns_entries(self):
+        names = der(0x82, b"a.example.com") + der(0x82, b"b.example.com")
+        octets = der(0x30, names)
+        assert x509._extract_sans(self.extension(b"\x55\x1d\x11", octets)) == [
+            "a.example.com",
+            "b.example.com",
+        ]
+
+    def test_reads_entries_without_a_sequence_wrapper(self):
+        # Some encoders omit the GeneralNames SEQUENCE header entirely.
+        names = der(0x82, b"a.example.com")
+        assert x509._extract_sans(self.extension(b"\x55\x1d\x11", names)) == ["a.example.com"]
+
+    def test_reads_email_and_uri_entries(self):
+        names = der(0x81, b"admin@example.com") + der(0x86, b"https://example.com/")
+        octets = der(0x30, names)
+        assert x509._extract_sans(self.extension(b"\x55\x1d\x11", octets)) == [
+            "admin:example.com",
+            "https://example.com/",
+        ]
+
+    def test_reads_ip_entries(self):
+        names = der(0x87, bytes([93, 184, 216, 34]))
+        octets = der(0x30, names)
+        assert x509._extract_sans(self.extension(b"\x55\x1d\x11", octets)) == ["93.184.216.34"]
+
+    def test_truncated_general_names_do_not_raise(self):
+        # A SAN body that ends mid-TLV must yield what was readable.
+        octets = der(0x30, der(0x82, b"a.example.com") + b"\x82\x0bshort")
+        found = x509._extract_sans(self.extension(b"\x55\x1d\x11", octets))
+        assert found == ["a.example.com"]
+
+    def test_unreadable_octets_are_skipped(self):
+        # An empty extnValue is malformed but must not raise out of the parser.
+        assert x509._extract_sans(self.extension(b"\x55\x1d\x11", b"")) == []
 
 
 class TestFormatIp:

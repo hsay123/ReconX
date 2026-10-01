@@ -167,3 +167,18 @@ class TestLookup:
             headers={"Server": "Apache"},
         )
         assert "Apache" in names(fingerprint.lookup("example.com", ctx))
+
+    @responses.activate
+    def test_generator_alone_identifies_a_cms(self, ctx):
+        responses.add(
+            responses.GET,
+            "https://example.com",
+            body='<meta name="generator" content="PrestaShop 8.1">',
+        )
+        result = fingerprint.lookup("example.com", ctx)
+        assert "PrestaShop" in names(result)
+        assert result["generator"] == "PrestaShop 8.1"
+
+    def test_matches_on_header_only(self):
+        result = fingerprint.detect({"x-powered-by": "ASP.NET"})
+        assert "ASP.NET" in names(result)

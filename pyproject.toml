@@ -64,10 +64,18 @@ filterwarnings = ["ignore::DeprecationWarning"]
 [tool.coverage.run]
 source = ["reconx"]
 branch = true
+omit = ["reconx/__main__.py"]
 
 [tool.coverage.report]
 show_missing = true
 skip_empty = true
+fail_under = 80
+# __main__ is only executed by `python -m reconx`; the console script path is
+# covered by the subprocess test instead.
+exclude_also = [
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+]
 exclude_lines = [
     "pragma: no cover",
     "if __name__ == .__main__.:",

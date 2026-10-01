@@ -206,7 +206,11 @@ def _extract_sans(extensions: bytes) -> list[str]:
         # The extnValue is an OCTET STRING wrapping a GeneralNames SEQUENCE;
         # some encoders add the SEQUENCE header, some omit it.
         octet = parts[1][1]
-        first_tag, _start, first_body, _next = _read_tlv(octet, 0)
+        try:
+            first_tag, _start, first_body, _next = _read_tlv(octet, 0)
+        except ValueError:
+            # Malformed or empty extnValue: nothing readable, so no SANs.
+            continue
         if first_tag == _TAG_SEQUENCE:
             octet = first_body
         offset = 0
@@ -214,6 +218,7 @@ def _extract_sans(extensions: bytes) -> list[str]:
             try:
                 tag, _start, body, offset = _read_tlv(octet, offset)
             except ValueError:
+                # Trailing bytes that do not form a TLV; keep what parsed.
                 break
             if tag == _SAN_DNS:
                 sans.append(body.decode("ascii", errors="replace"))

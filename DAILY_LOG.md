@@ -57,3 +57,15 @@
   wrote to stdout *and* returned its text, so every report printed twice; and
   MX/SOA records rendered as Python dict literals in the Markdown and console
   views. 227 tests passing.
+- Step 11: completed the test suite — 303 tests, 97% branch coverage against an
+  80% floor. Added tests for `whois_info`, `context`, the package surface and
+  the legacy shim (including running `ReconX.py` as a subprocess). `conftest.py`
+  blocks outbound sockets for the whole session, so an unmocked call raises
+  instead of quietly reaching the internet.
+- The x509 tests caught a real bug in `_extract_sans`: an empty or malformed
+  `extnValue` raised out of the parser instead of being skipped. Writing the
+  tests with a DER-building helper also exposed that my first hand-written
+  fixtures were simply invalid DER.
+- Also fixed `core.register_module`: it added to `_MODULES`, but
+  `available_modules()` returned a tuple frozen at import time, so a
+  registered module could never be resolved or run. The test caught it.

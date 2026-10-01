@@ -24,7 +24,6 @@ from . import dns_info, fingerprint, http_info, subdomains, tls_info, whois_info
 from .context import ReconContext, default_context
 
 __all__ = [
-    "ALL_MODULES",
     "DEFAULT_TIMEOUT",
     "LEGAL_NOTICE",
     "ModuleRunner",
@@ -120,13 +119,15 @@ _MODULES: dict[str, ModuleRunner] = {
     "whois": whois_info.lookup,
 }
 
-#: Every module name, in the order reports present them.
-ALL_MODULES: tuple[str, ...] = tuple(_MODULES)
-
 
 def available_modules() -> tuple[str, ...]:
-    """Return the names of every registered recon module."""
-    return ALL_MODULES
+    """Return the names of every registered recon module.
+
+    Read from the registry rather than a module-level constant, so a module
+    added later via :func:`register_module` is actually runnable and appears
+    in ``--help``.
+    """
+    return tuple(_MODULES)
 
 
 def register_module(name: str, runner: ModuleRunner) -> None:
@@ -134,7 +135,8 @@ def register_module(name: str, runner: ModuleRunner) -> None:
 
     Args:
         name: The ``--modules`` name for it.
-        runner: A callable taking the domain and returning a dict.
+        runner: A callable taking the domain and the run context, returning a
+            dict.
 
     Raises:
         ValueError: If ``name`` is already registered.
@@ -151,22 +153,21 @@ def resolve_modules(requested: list[str] | None) -> list[str]:
         requested: Names to run, or ``None``/empty for all of them.
 
     Returns:
-        Names in :data:`ALL_MODULES` order, so report output is deterministic
-        regardless of the order the user typed them in.
+        Names in registry order, so report output is deterministic regardless
+        of the order the user typed them in.
 
     Raises:
         ValueError: If any name is not a registered module.
     """
+    order = available_modules()
     if not requested:
-        return list(ALL_MODULES)
+        return list(order)
 
     wanted = {name.strip().lower() for name in requested if name.strip()}
     unknown = sorted(wanted - set(_MODULES))
     if unknown:
-        raise ValueError(
-            f"unknown module(s): {', '.join(unknown)}. Available: {', '.join(ALL_MODULES)}"
-        )
-    return [name for name in ALL_MODULES if name in wanted]
+        raise ValueError(f"unknown module(s): {', '.join(unknown)}. Available: {', '.join(order)}")
+    return [name for name in order if name in wanted]
 
 
 def _run_one(name: str, domain: str, context: ReconContext) -> dict[str, Any]:

@@ -47,3 +47,10 @@
   Markdown, and a self-contained HTML page with inline CSS and escaped values.
   Nested records such as MX and SOA are flattened instead of printed as Python
   literals.
+- test: 303 unit tests, all network access mocked, 97% branch coverage on the
+  `reconx` package (floor set at 80%). A session fixture in `conftest.py`
+  refuses outbound connections outright, so an unmocked call fails loudly
+  instead of silently hitting the internet or making CI flaky.
+- fix: `register_module` now actually registers. It appended to the module
+  table, but the list used for lookup and `--help` was frozen at import, so a
+  newly added module could never run.

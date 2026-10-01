@@ -145,6 +145,18 @@ class TestMarkdown:
     def test_warnings_are_listed(self, sample_report):
         assert "followed 1 redirect" in report.markdown(sample_report)
 
+    def test_module_without_warnings_renders(self, sample_report):
+        del sample_report["results"]["dns"]["warnings"]
+        assert "## dns" in report.markdown(sample_report)
+
+    def test_module_with_empty_warnings_renders(self, sample_report):
+        sample_report["results"]["dns"]["warnings"] = []
+        assert "## dns" in report.markdown(sample_report)
+
+    def test_module_with_no_lists_renders(self, sample_report):
+        sample_report["results"]["whois"]["warnings"] = None
+        assert "## whois" in report.markdown(sample_report)
+
     def test_empty_values_render_as_dash(self, sample_report):
         sample_report["results"]["tls"]["cipher"] = ""
         assert "- " in report.markdown(sample_report)
@@ -155,6 +167,11 @@ class TestMarkdown:
         # document meant to be pasted into a write-up.
         assert "preference=10" in text
         assert "{'preference'" not in text
+
+    def test_missing_dns_records_still_render(self, sample_report):
+        sample_report["results"]["dns"] = {"records": {}, "warnings": []}
+        text = report.markdown(sample_report)
+        assert "## dns" in text
 
 
 class TestToHtml:
@@ -194,6 +211,14 @@ class TestToHtml:
     def test_error_is_shown(self, sample_report):
         sample_report["results"]["dns"] = {"error": "boom"}
         assert "boom" in report.to_html(sample_report)
+
+    def test_module_without_lists_renders(self, sample_report):
+        del sample_report["results"]["dns"]["warnings"]
+        assert "<h2>dns</h2>" in report.to_html(sample_report)
+
+    def test_empty_records_render(self, sample_report):
+        sample_report["results"]["dns"] = {"records": {}, "warnings": []}
+        assert "<h2>dns</h2>" in report.to_html(sample_report)
 
     def test_summary_pills_present(self, sample_report):
         text = report.to_html(sample_report)

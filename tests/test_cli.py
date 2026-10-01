@@ -125,3 +125,27 @@ class TestMain:
             monkeypatch.setitem(core._MODULES, name, boom)
         assert cli.main(["example.com", "--format", "json"]) == 1
         assert "every module failed" in capsys.readouterr().err
+
+    def test_partial_failure_is_only_reported_when_verbose(self, monkeypatch, capsys):
+        def boom(domain: str, context: Any) -> dict[str, Any]:
+            raise RuntimeError("nope")
+
+        monkeypatch.setitem(core._MODULES, "dns", boom)
+        assert cli.main(["example.com", "--format", "json"]) == 0
+        assert "modules with errors" not in capsys.readouterr().err
+
+        assert cli.main(["example.com", "--format", "json", "-v"]) == 0
+        assert "modules with errors" in capsys.readouterr().err
+
+    def test_markdown_output(self, capsys):
+        assert cli.main(["example.com", "--modules", "dns", "--format", "md"]) == 0
+        assert capsys.readouterr().out.startswith("# ReconX report: example.com")
+
+    def test_html_output(self, capsys):
+        assert cli.main(["example.com", "--modules", "dns", "--format", "html"]) == 0
+        assert "<!DOCTYPE html>" in capsys.readouterr().out
+
+    def test_file_output_gets_a_trailing_newline(self, tmp_path):
+        target = tmp_path / "report.md"
+        assert cli.main(["example.com", "--modules", "dns", "-f", "md", "-o", str(target)]) == 0
+        assert target.read_text(encoding="utf-8").endswith("\n")
