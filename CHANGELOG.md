@@ -28,3 +28,7 @@
   both sources are deduplicated and sorted; wildcard DNS is detected with a
   random-label probe so a catch-all zone does not report every word as a hit.
   Ships a small default wordlist in the package.
+- feat: HTTP module records the full redirect chain (each hop's URL, status and
+  destination), response time, and an audit of HSTS, CSP, X-Frame-Options,
+  X-Content-Type-Options, Referrer-Policy and Permissions-Policy with a
+  pass/missing score and grade. Hops are capped so a redirect loop terminates.

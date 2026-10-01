@@ -32,3 +32,8 @@
   answering 502 from this network all session, which exercised the degradation
   path: the module reports a warning and still returns wordlist results.
   93 tests passing.
+- Step 7: HTTP module now walks the redirect chain manually (bounded at 5 hops,
+  so a redirect loop terminates) and reports every hop instead of only the
+  final destination. Added a security-header audit for HSTS, CSP,
+  X-Frame-Options, X-Content-Type-Options, Referrer-Policy and
+  Permissions-Policy, with a score and grade. 123 tests passing.
