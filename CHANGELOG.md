@@ -6,3 +6,8 @@
 - chore: added pyproject.toml (package `reconx`, console script `reconx`), pinned
   requirements files, .gitignore, ruff/pytest/coverage config, and an MIT LICENSE
   so the project is installable, lintable, and testable out of the box.
+- refactor: split the single-file script into a `reconx/` package (`core`,
+  `dns_info`, `http_info`, `whois_info`). Modules now return dicts instead of
+  printing, and a module that fails records an `error` field rather than
+  taking down the run. `ReconX.py` is kept as a backward-compatible shim over
+  the old function names.

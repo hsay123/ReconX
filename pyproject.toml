@@ -46,9 +46,6 @@ Repository = "https://github.com/hsay123/ReconX"
 Issues = "https://github.com/hsay123/ReconX/issues"
 Changelog = "https://github.com/hsay123/ReconX/blob/main/CHANGELOG.md"
 
-[project.scripts]
-reconx = "reconx.cli:main"
-
 [tool.hatch.build.targets.wheel]
 packages = ["reconx"]
 
@@ -95,19 +92,23 @@ select = [
     "PTH",  # pathlib
     "RUF",  # ruff-specific
     "S",    # bandit
+    "BLE",  # blind except
     "ANN",  # annotations
     "D",    # pydocstyle
+    "T20",  # no stray print() in library code
 ]
 ignore = [
-    "D203",   # incompatible with D211
-    "D213",   # incompatible with D212
-    "S101",   # assert is fine in tests and internal invariants
+    "D203",     # incompatible with D211
+    "D213",     # incompatible with D212
+    "S101",     # assert is fine in tests and internal invariants
+    "BLE001",   # broad except is deliberate: one module must never kill the run
+    "ANN401",   # recon data is heterogeneous by nature; Any is the honest type
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["ANN", "D", "S101", "ARG", "PTH"]
-# Legacy single-file script; removed once the reconx/ package lands (step 3).
-"ReconX.py" = ["D", "ANN", "E402", "F401", "S603", "S607"]
+# Legacy interactive shim: printing to stdout is its whole purpose.
+"ReconX.py" = ["D", "ANN", "E402", "F401", "S603", "S607", "T20"]
 
 [tool.ruff.lint.pydocstyle]
 convention = "pep257"
