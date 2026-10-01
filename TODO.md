@@ -1,24 +1,26 @@
 # TODO
 
-Refactor plan for ReconX. One tick per commit; see NOTES.md for context.
+## v0.2.0 rebuild
 
-## Plan (in progress)
+- [x] 1. docs: Replace the stale RupeeLink README with an accurate ReconX README
+- [x] 2. chore: pyproject.toml, console script, .gitignore, ruff config, LICENSE
+- [ ] 3. refactor: move to a `reconx/` package, functions return dicts
+- [ ] 4. feat: argparse CLI with domain normalization
+- [ ] 5. feat: DNS module on dnspython (drop the broken `dig *.domain` call)
+- [ ] 6. feat: subdomain discovery (crt.sh + capped wordlist resolution)
+- [ ] 7. feat: HTTP module with redirect chain and security-header audit
+- [ ] 8. feat: TLS module
+- [ ] 9. feat: lightweight technology fingerprinting
+- [ ] 10. feat: JSON / Markdown / HTML reporting and console summary
+- [ ] 11. test: mocked pytest suite, >= 80% coverage on the package
+- [ ] 12. ci: GitHub Actions (ruff + pytest + coverage, Python 3.10-3.12)
+- [ ] 13. docs: ARCHITECTURE.md, sample output, v0.2.0 release entry, tag
 
-- [x] 1. docs — replace the stale RupeeLink README with an accurate one
-- [ ] 2. chore — pyproject.toml, requirements, .gitignore, ruff config, LICENSE
-- [ ] 3. refactor — `reconx/` package, dict-returning modules, `ReconX.py` shim
-- [ ] 4. feat — argparse CLI, domain normalisation/validation
-- [ ] 5. feat — DNS module on dnspython, drop the broken `dig *.domain` call
-- [ ] 6. feat — subdomain discovery (crt.sh + capped wordlist resolution)
-- [ ] 7. feat — HTTP module (redirect chain, timing, security header audit)
-- [ ] 8. feat — TLS module (stdlib ssl/socket)
-- [ ] 9. feat — light tech fingerprinting
-- [ ] 10. feat — JSON / Markdown / HTML reporting + coloured console output
-- [ ] 11. test — pytest suite, network fully mocked, >= 80% coverage
-- [ ] 12. ci — GitHub Actions (ruff + pytest + coverage, Python 3.10–3.12)
-- [ ] 13. docs — ARCHITECTURE rewrite, sample output in assets/, v0.2.0 release
+## Future ideas
 
-## Done previously
-
-- [x] Initial prototype: `ReconX.py` with IP / headers / WHOIS / `dig` subdomain lookup
-- [x] Project documentation scaffolding (ARCHITECTURE.md, CHANGELOG.md, DAILY_LOG.md)
+- [ ] Custom DNS resolver selection (`--resolver`)
+- [ ] Scan diffing: compare two runs and report infrastructure changes
+- [ ] Richer fingerprint signatures with confidence scores
+- [ ] Optional subdomain wordlist from a remote list, cached locally
+- [ ] Machine-readable exit codes per module for scripted pipelines
+- [ ] IPv6-aware subdomains and per-host TLS correlation
