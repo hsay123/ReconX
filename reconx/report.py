@@ -200,9 +200,7 @@ def _section_body(name: str, data: dict[str, Any]) -> dict[str, Any]:
             "dnssec",
         )
         rows = [
-            (key, data[key])
-            for key in order
-            if key in data and data[key] not in (None, "", [])
+            (key, data[key]) for key in order if key in data and data[key] not in (None, "", [])
         ]
         rows.extend(
             (key, value)
