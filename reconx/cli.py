@@ -96,6 +96,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--concurrency",
+        "--max-workers",
+        dest="concurrency",
         type=int,
         default=8,
         metavar="N",
