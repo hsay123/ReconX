@@ -64,6 +64,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "domain",
+        nargs="?",
+        default=None,
         help="domain to inspect, e.g. example.com (scheme and path are stripped)",
     )
     parser.add_argument(
@@ -120,6 +122,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="version",
         version=f"ReconX {__version__}",
     )
+    parser.add_argument(
+        "--legal",
+        action="store_true",
+        help="print the authorization notice and exit",
+    )
     return parser
 
 
@@ -154,6 +161,13 @@ def main(argv: Sequence[str] | None = None) -> int:
     """
     parser = build_parser()
     args = parser.parse_args(argv)
+
+    if args.legal:
+        print(LEGAL_NOTICE)
+        return 0
+
+    if not args.domain:
+        parser.error("the following arguments are required: domain")
 
     logging.basicConfig(
         level=logging.DEBUG if args.verbose else logging.WARNING,
