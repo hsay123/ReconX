@@ -26,6 +26,7 @@ class ReconContext:
         concurrency: Maximum threads for parallel name resolution.
         wordlist: Optional path to a newline-delimited subdomain wordlist.
         user_agent: ``User-Agent`` sent with outbound HTTP requests.
+        no_crtsh: Skip the crt.sh transparency lookup when True.
     """
 
     timeout: float = 10.0
@@ -33,6 +34,7 @@ class ReconContext:
     wordlist: Path | None = None
     user_agent: str = "ReconX/0.2.0 (+https://github.com/hsay123/ReconX; passive recon)"
     extras: dict[str, object] = field(default_factory=dict, compare=False)
+    no_crtsh: bool = False
 
 
 def default_context() -> ReconContext:

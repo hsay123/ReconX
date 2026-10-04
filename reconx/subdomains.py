@@ -233,9 +233,13 @@ def discover(
     ctx = context or default_context()
     warnings: list[str] = []
 
-    crtsh = query_crtsh(domain, ctx, session)
-    if crtsh["error"]:
-        warnings.append(crtsh["error"])
+    skip_crtsh = bool(getattr(ctx, "no_crtsh", False) or ctx.extras.get("no_crtsh"))
+    if skip_crtsh:
+        crtsh: dict[str, Any] = {"names": [], "error": None}
+    else:
+        crtsh = query_crtsh(domain, ctx, session)
+        if crtsh["error"]:
+            warnings.append(crtsh["error"])
     passive = set(crtsh["names"])
 
     words = load_wordlist(wordlist if wordlist is not None else ctx.wordlist)
