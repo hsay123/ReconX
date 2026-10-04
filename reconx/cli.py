@@ -198,7 +198,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     output = _render(report, args.format)
 
     if args.output:
-        with Path(args.output).open("w", encoding="utf-8") as handle:
+        out_path = Path(args.output)
+        if out_path.parent != Path("."):
+            out_path.parent.mkdir(parents=True, exist_ok=True)
+        with out_path.open("w", encoding="utf-8") as handle:
             handle.write(output if output.endswith("\n") else output + "\n")
     else:
         print(output)
