@@ -185,6 +185,31 @@ def _section_body(name: str, data: dict[str, Any]) -> dict[str, Any]:
             ],
             "lists": {"subdomains": found},
         }
+    if name == "whois":
+        order = (
+            "registrar",
+            "registrant",
+            "organization",
+            "created",
+            "updated",
+            "expires",
+            "name_servers",
+            "status",
+            "country",
+            "emails",
+            "dnssec",
+        )
+        rows = [
+            (key, data[key])
+            for key in order
+            if key in data and data[key] not in (None, "", [])
+        ]
+        rows.extend(
+            (key, value)
+            for key, value in sorted(data.items())
+            if key not in order and key not in common
+        )
+        return {"rows": rows, "lists": {}}
     return {"rows": _kv_rows(data, common), "lists": {}}
 
 
