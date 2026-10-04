@@ -68,7 +68,7 @@ reconx [OPTIONS] DOMAIN
 | `DOMAIN` | required | Target domain, e.g. `example.com` |
 | `-m, --modules` | all | Comma-separated subset of `dns,whois,http,tls,tech,subdomains` |
 | `--timeout` | `10.0` | Per-request timeout in seconds |
-| `--max-workers` | `10` | Concurrency cap for wordlist resolution |
+| `--concurrency, --max-workers` | `8` | Concurrency cap for wordlist resolution |
 | `--wordlist` | built-in | Path to a custom subdomain wordlist |
 | `--no-crtsh` | off | Skip the certificate-transparency lookup |
 | `-f, --format` | `text` | Output format: `text`, `json`, `md`, `html` |
@@ -200,17 +200,21 @@ The test suite never touches the network: DNS, WHOIS, and HTTP are mocked, so
 
 ```
 reconx/
-├── cli.py            # argparse front end
+├── __init__.py       # version, public run() entry point
+├── __main__.py       # python -m reconx shim
+├── cli.py            # argparse front end (--legal, --no-crtsh, -o creates dirs)
+├── context.py        # ReconContext: timeout, concurrency, wordlist, no_crtsh
 ├── core.py           # orchestration, error isolation
 ├── dns_info.py       # DNS records
 ├── whois_info.py     # WHOIS
 ├── http_info.py      # HTTP + security headers
 ├── tls_info.py       # TLS certificate
+├── x509.py           # minimal DER reader for broken-chain reporting
 ├── fingerprint.py    # technology detection
 ├── subdomains.py     # crt.sh + wordlist
-├── report.py         # json / md / html renderers
-├── render.py         # console summary
-└── data/words.txt    # default subdomain wordlist
+├── report.py         # text / json / md / html renderers
+└── wordlists/
+    └── default_subdomains.txt  # bundled subdomain wordlist
 ```
 
 ## Roadmap
