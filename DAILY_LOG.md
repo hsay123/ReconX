@@ -69,3 +69,9 @@
 - Also fixed `core.register_module`: it added to `_MODULES`, but
   `available_modules()` returned a tuple frozen at import time, so a
   registered module could never be resolved or run. The test caught it.
+- Step 12: added `.github/workflows/ci.yml` — ruff and pytest+coverage across
+  Python 3.10–3.12 with pip caching, plus a packaging job that builds the
+  wheel, installs it into a fresh venv and checks the bundled wordlist is
+  present. That last check exists because package data is easy to exclude by
+  accident: subdomain discovery would work from a checkout and break for
+  anyone who installed it. Verified locally by building and running the wheel.

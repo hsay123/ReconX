@@ -54,3 +54,6 @@
 - fix: `register_module` now actually registers. It appended to the module
   table, but the list used for lookup and `--help` was frozen at import, so a
   newly added module could never run.
+- ci: GitHub Actions running ruff and pytest with coverage on Python 3.10–3.12,
+  plus a job that builds the wheel, installs it into a clean environment and
+  asserts the bundled wordlist survives packaging.
