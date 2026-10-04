@@ -57,3 +57,14 @@
 - ci: GitHub Actions running ruff and pytest with coverage on Python 3.10–3.12,
   plus a job that builds the wheel, installs it into a clean environment and
   asserts the bundled wordlist survives packaging.
+- fix(cli): accept `--max-workers` as an alias for `--concurrency` so the
+  documented example works; fix the README default (8, not 10).
+- feat(cli): add `--legal` to print the authorization notice and exit, and
+  `--no-crtsh` (`ReconContext.no_crtsh`) to skip the slow transparency lookup
+  for wordlist-only runs.
+- fix(cli): `-o/--output` now creates missing parent directories.
+- feat(report): dedicated WHOIS section with stable field order in
+  text/Markdown/HTML; JSON unchanged.
+- docs: rewrite ARCHITECTURE.md for the v0.2.0 package and fix the README
+  project layout (`report.py`, `context.py`, `x509.py`, `wordlists/`).
+- test: packaging regression test that the bundled wordlist exists and loads.
