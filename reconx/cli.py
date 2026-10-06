@@ -112,6 +112,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="subdomain wordlist file (default: the bundled list)",
     )
     parser.add_argument(
+        "--resolver",
+        default=None,
+        metavar="ADDRESS",
+        help="DNS server to query, e.g. 1.1.1.1 or 1.1.1.1#5353 (default: system resolver)",
+    )
+    parser.add_argument(
         "--no-crtsh",
         action="store_true",
         help="skip the certificate-transparency lookup",
@@ -142,6 +148,7 @@ def _build_context(args: argparse.Namespace) -> ReconContext:
         concurrency=max(1, min(args.concurrency, MAX_CONCURRENCY)),
         wordlist=Path(args.wordlist) if args.wordlist else None,
         no_crtsh=bool(getattr(args, "no_crtsh", False)),
+        resolver=getattr(args, "resolver", None),
     )
 
 
