@@ -103,11 +103,26 @@ def normalize_domain(raw: str) -> str:
 
     if not candidate:
         raise ValueError(f"could not parse a domain from {raw!r}")
+
+    # Internationalized domains are legal input; DNS only speaks punycode, so
+    # encode before validating the labels.
+    candidate = _to_ascii(candidate)
+
     if len(candidate) > 253:
         raise ValueError(f"domain is too long ({len(candidate)} characters, max 253)")
     if not _DOMAIN_RE.match(candidate):
         raise ValueError(f"{raw!r} is not a valid domain name; expected something like example.com")
     return candidate
+
+
+def _to_ascii(candidate: str) -> str:
+    """Return the punycode form of a domain, or the input if already ASCII."""
+    if candidate.isascii():
+        return candidate
+    try:
+        return candidate.encode("idna").decode("ascii")
+    except UnicodeError as exc:
+        raise ValueError(f"domain contains invalid international characters: {exc}") from exc
 
 
 #: Registry of runnable modules, keyed by the name used with ``--modules``.
