@@ -65,26 +65,30 @@ def _query(
     rtype: str,
     resolver: dns.resolver.Resolver,
     timeout: float,
-) -> tuple[list[Any], str | None]:
-    """Query one record type, returning ``(values, error)``."""
+) -> tuple[list[Any], str | None, bool]:
+    """Query one record type, returning ``(values, error, fatal)``.
+
+    ``fatal`` marks a failure that makes every remaining query pointless: once
+    a name is known not to exist, no other record type can answer for it.
+    """
     try:
         answers = resolver.resolve(domain, rtype, raise_on_no_answer=False, lifetime=timeout)
     except dns.resolver.NXDOMAIN:
-        return [], f"{domain} does not exist (NXDOMAIN)"
+        return [], f"{domain} does not exist (NXDOMAIN)", True
     except dns.resolver.NoAnswer:
         # Record type absent, which is normal and not a failure.
-        return [], None
+        return [], None, False
     except dns.resolver.NoNameservers:
-        return [], f"no nameserver could answer the {rtype} query"
+        return [], f"no nameserver could answer the {rtype} query", False
     except dns.resolver.LifetimeTimeout:
-        return [], f"{rtype} query timed out after {timeout:g}s"
+        return [], f"{rtype} query timed out after {timeout:g}s", False
     except dns.exception.DNSException as exc:
-        return [], f"{rtype} query failed: {exc}"
+        return [], f"{rtype} query failed: {exc}", False
 
     values = [_normalize_rdata(rdata, rtype) for rdata in answers]
     if not values and rtype == "CNAME":
-        return [], None
-    return values, None
+        return [], None, False
+    return values, None, False
 
 
 def resolve_all(
@@ -130,12 +134,16 @@ def resolve_all_with_errors(
     records: dict[str, list[Any]] = {}
     errors: list[str] = []
     for rtype in RECORD_TYPES:
-        values, error = _query(domain, rtype, active, timeout)
+        values, error, fatal = _query(domain, rtype, active, timeout)
         if values:
             records[rtype] = values
         if error:
             LOGGER.debug("%s for %s: %s", rtype, domain, error)
             errors.append(error)
+        if fatal:
+            # NXDOMAIN: the name itself is absent, so the remaining types
+            # cannot produce anything and would only repeat the same error.
+            break
     return records, errors
 
 
