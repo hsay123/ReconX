@@ -106,18 +106,32 @@ class TestFetchChain:
         assert response is not None
         assert response.status_code == 304
 
-    def test_redirect_loop_is_bounded(self, ctx):
-        hops = http_info.MAX_REDIRECTS + 1
+    def test_redirect_loop_is_detected(self, ctx):
         with responses.RequestsMock() as mock:
-            for _ in range(hops):
-                mock.add(
-                    responses.GET,
-                    "https://example.com",
-                    status=302,
-                    headers={"Location": "https://example.com"},
-                )
+            # One hop is enough: the loop is spotted before it is re-requested.
+            mock.add(
+                responses.GET,
+                "https://example.com",
+                status=302,
+                headers={"Location": "https://example.com"},
+            )
             session = http_info.build_session(ctx)
             response, _chain, error = http_info._fetch_chain(session, "https://example.com", 2.0)
+        assert response is None
+        assert "redirect loop" in error
+
+    def test_long_distinct_chain_is_bounded(self, ctx):
+        hops = http_info.MAX_REDIRECTS + 1
+        with responses.RequestsMock() as mock:
+            for index in range(hops):
+                mock.add(
+                    responses.GET,
+                    f"https://example.com/{index}",
+                    status=302,
+                    headers={"Location": f"https://example.com/{index + 1}"},
+                )
+            session = http_info.build_session(ctx)
+            response, _chain, error = http_info._fetch_chain(session, "https://example.com/0", 2.0)
         assert response is None
         assert "exceeded" in error
 
