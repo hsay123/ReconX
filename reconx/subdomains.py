@@ -15,6 +15,7 @@ brute forces, scans ports, or probes discovered hosts.
 from __future__ import annotations
 
 import logging
+import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from importlib.resources import files
 from pathlib import Path
@@ -47,6 +48,20 @@ DEFAULT_WORDLIST = Path(str(files("reconx").joinpath("wordlists/default_subdomai
 
 #: cap on the transparency query, which is known to be slow
 CRTSH_TIMEOUT = 30.0
+
+#: Resolvers are not thread-safe, but building one per lookup is wasteful: each
+#: parses configuration and reopens a UDP socket. One per worker thread is the
+#: right trade.
+_THREAD_LOCAL = threading.local()
+
+
+def _thread_resolver() -> dns.resolver.Resolver:
+    """Return this thread's resolver, creating it on first use."""
+    resolver = getattr(_THREAD_LOCAL, "resolver", None)
+    if resolver is None:
+        resolver = dns.resolver.Resolver()
+        _THREAD_LOCAL.resolver = resolver
+    return resolver
 
 
 def load_wordlist(path: Path | None = None) -> list[str]:
@@ -84,6 +99,16 @@ def _in_scope(name: str, domain: str) -> bool:
     return name == domain or name.endswith(f".{domain}")
 
 
+def _crtsh_timeout(context: ReconContext) -> float:
+    """Return the crt.sh request timeout for this run.
+
+    crt.sh is notoriously slow, so it is allowed a generous multiple of the
+    configured timeout rather than the raw value - but never an unbounded wait
+    when the operator explicitly asked for less.
+    """
+    return min(CRTSH_TIMEOUT, max(context.timeout, 1.0) * 3)
+
+
 def query_crtsh(
     domain: str,
     context: ReconContext | None = None,
@@ -109,7 +134,7 @@ def query_crtsh(
         response = active.get(
             CRTSH_URL,
             params={"q": f"%.{domain}", "output": "json"},
-            timeout=CRTSH_TIMEOUT,
+            timeout=_crtsh_timeout(ctx),
             headers={"User-Agent": ctx.user_agent},
         )
     except requests.RequestException as exc:
@@ -152,7 +177,7 @@ def query_crtsh(
 
 def _resolves(name: str, timeout: float) -> bool:
     """Return whether ``name`` resolves to any A or AAAA record."""
-    resolver = dns.resolver.Resolver()
+    resolver = _thread_resolver()
     for rtype in ("A", "AAAA"):
         try:
             if resolver.resolve(name, rtype, raise_on_no_answer=False, lifetime=timeout):
