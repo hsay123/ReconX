@@ -21,6 +21,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 from . import dns_info, fingerprint, http_info, subdomains, tls_info, whois_info
+from ._version import __version__
 from .context import ReconContext, default_context
 
 __all__ = [
@@ -237,8 +238,6 @@ def run(
     started = time.perf_counter()
     results: dict[str, Any] = {name: _run_one(name, target, ctx) for name in selected}
     duration = round(time.perf_counter() - started, 3)
-
-    from . import __version__
 
     return {
         "tool": "reconx",
