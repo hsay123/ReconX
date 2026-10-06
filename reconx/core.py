@@ -17,6 +17,7 @@ import logging
 import re
 import time
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from datetime import UTC, datetime
 from typing import Any
 
@@ -40,6 +41,10 @@ LOGGER = logging.getLogger(__name__)
 
 #: Default per-request timeout, in seconds.
 DEFAULT_TIMEOUT = 10.0
+
+#: Upper bound on threads dispatching whole modules. Modules already fan out
+#: internally, so this stays small: it only overlaps their socket waits.
+MAX_MODULE_WORKERS = 6
 
 #: A recon module: takes the target domain plus the shared run context and
 #: returns a JSON-safe dict. Modules must tolerate being handed a context they
@@ -208,6 +213,30 @@ def _run_one(name: str, domain: str, context: ReconContext) -> dict[str, Any]:
     return result
 
 
+def _run_all(
+    selected: list[str],
+    domain: str,
+    context: ReconContext,
+) -> dict[str, Any]:
+    """Run every selected module and return results in selection order.
+
+    Modules are independent network calls that spend their time waiting on
+    sockets, so they are dispatched to a bounded thread pool: a full run is
+    dominated by the slowest module, not by their sum. Results are written back
+    in ``selected`` order, keeping report output byte-for-byte deterministic.
+    """
+    workers = max(1, min(len(selected), MAX_MODULE_WORKERS))
+    if workers == 1:
+        return {name: _run_one(name, domain, context) for name in selected}
+
+    results: dict[str, Any] = {}
+    with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="reconx-mod") as pool:
+        futures = {name: pool.submit(_run_one, name, domain, context) for name in selected}
+        for name in selected:
+            results[name] = futures[name].result()
+    return results
+
+
 def _summarize(results: dict[str, Any]) -> dict[str, Any]:
     """Build counts used by the console summary and the HTML report."""
     failed = sorted(
@@ -251,7 +280,7 @@ def run(
     ctx = context or default_context()
 
     started = time.perf_counter()
-    results: dict[str, Any] = {name: _run_one(name, target, ctx) for name in selected}
+    results = _run_all(selected, target, ctx)
     duration = round(time.perf_counter() - started, 3)
 
     return {
