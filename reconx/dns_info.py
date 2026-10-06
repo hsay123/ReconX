@@ -22,6 +22,7 @@ __all__ = [
     "DEFAULT_RESOLVER",
     "RECORD_TYPES",
     "lookup",
+    "make_resolver",
     "resolve_all",
     "resolve_all_with_errors",
 ]
@@ -147,6 +148,39 @@ def resolve_all_with_errors(
     return records, errors
 
 
+def _context_resolver(context: ReconContext) -> dns.resolver.Resolver:
+    """Return the resolver a run should use, honouring ``context.resolver``."""
+    address = getattr(context, "resolver", None)
+    if not address:
+        return DEFAULT_RESOLVER
+    try:
+        return make_resolver(str(address))
+    except (ValueError, dns.exception.DNSException):
+        LOGGER.debug("falling back to the default resolver: %r is unusable", address)
+        return DEFAULT_RESOLVER
+
+
+def make_resolver(address: str) -> dns.resolver.Resolver:
+    """Build a resolver bound to a specific DNS server.
+
+    Args:
+        address: A nameserver IP, optionally with a ``#port`` suffix.
+
+    Returns:
+        A resolver that queries only that server.
+
+    Raises:
+        ValueError: If the address is not a usable IP, or the resolver library
+            rejects it.
+    """
+    host, _, port = address.partition("#")
+    resolver = dns.resolver.Resolver()
+    resolver.nameservers = [host.strip()]
+    if port:
+        resolver.port = int(port)
+    return resolver
+
+
 def lookup(
     domain: str,
     context: ReconContext | None = None,
@@ -156,7 +190,8 @@ def lookup(
 
     Args:
         domain: A normalized domain name.
-        context: Shared run settings; supplies the per-query timeout.
+        context: Shared run settings; supplies the per-query timeout and the
+            optional ``resolver`` nameserver address.
         resolver: Resolver to use. Defaults to the shared :data:`DEFAULT_RESOLVER`.
 
     Returns:
@@ -164,7 +199,8 @@ def lookup(
         ``error`` key only when nothing at all could be resolved.
     """
     ctx = context or default_context()
-    records, errors = resolve_all_with_errors(domain, resolver, min(ctx.timeout, 10.0))
+    active = resolver or _context_resolver(ctx)
+    records, errors = resolve_all_with_errors(domain, active, min(ctx.timeout, 10.0))
     if not records:
         # Deduplicate: every record type reports the same underlying failure,
         # so surfacing all seven would be noise.

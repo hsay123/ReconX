@@ -39,6 +39,8 @@ class ReconContext:
         user_agent: ``User-Agent`` sent with outbound HTTP requests. Derived
             from the packaged version unless overridden.
         no_crtsh: Skip the crt.sh transparency lookup when True.
+        resolver: Optional nameserver address (``1.1.1.1`` or ``1.1.1.1#5353``)
+            to query instead of the system resolver configuration.
     """
 
     timeout: float = 10.0
@@ -47,6 +49,7 @@ class ReconContext:
     user_agent: str = field(default_factory=_default_user_agent)
     extras: dict[str, object] = field(default_factory=dict, compare=False)
     no_crtsh: bool = False
+    resolver: str | None = None
 
 
 def default_context() -> ReconContext:
