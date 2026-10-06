@@ -120,6 +120,10 @@ def _section_body(name: str, data: dict[str, Any]) -> dict[str, Any]:
     Verbose internals (per-attempt logs, raw header dictionaries) are already
     visible in the JSON output, so the human-facing formats show the fields
     worth reading instead of dumping everything.
+
+    Rendering must never be the reason a finished run fails, so every field is
+    read defensively: a module that returns an unexpected shape degrades to a
+    readable row rather than raising out of the reporter.
     """
     common = {"duration_seconds", "error", "warnings", "attempts"}
 
@@ -166,7 +170,18 @@ def _section_body(name: str, data: dict[str, Any]) -> dict[str, Any]:
             "rows": [("generator", data.get("generator") or "-")],
             "lists": {
                 "technologies": [
-                    f"{item['name']} ({item['category']}, {item['confidence']})" for item in techs
+                    " ".join(
+                        str(part)
+                        for part in (
+                            item.get("name"),
+                            f"({item['category']})" if item.get("category") else "",
+                            item.get("confidence") or "",
+                        )
+                        if part
+                    )
+                    if isinstance(item, dict) and item.get("name")
+                    else str(item)
+                    for item in techs
                 ]
             },
         }
