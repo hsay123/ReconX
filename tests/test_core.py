@@ -6,6 +6,7 @@ with a stub, so the suite is deterministic and offline.
 
 from __future__ import annotations
 
+import threading
 from collections.abc import Iterator
 from typing import Any
 
@@ -154,3 +155,34 @@ class TestRun:
     def test_invalid_domain_raises(self):
         with pytest.raises(ValueError):
             core.run("not a domain")
+
+    def test_modules_run_concurrently_and_keep_order(self, monkeypatch):
+        started = threading.Barrier(2, timeout=5)
+
+        def slow(domain: str, context: Any) -> dict[str, Any]:
+            # Deadlocks unless both modules really are in flight at once.
+            started.wait()
+            return {"marker": domain}
+
+        monkeypatch.setitem(core._MODULES, "dns", slow)
+        monkeypatch.setitem(core._MODULES, "http", slow)
+
+        report = core.run("example.com", modules=["dns", "http"])
+
+        assert list(report["results"]) == ["dns", "http"]
+        assert report["results"]["dns"]["marker"] == "example.com"
+
+
+class TestInternationalizedDomains:
+    @pytest.mark.parametrize(
+        ("raw", "expected"),
+        [
+            ("münchen.de", "xn--mnchen-3ya.de"),
+            ("BÜCHER.example.com", "xn--bcher-kva.example.com"),
+        ],
+    )
+    def test_unicode_is_encoded_to_punycode(self, raw, expected):
+        assert core.normalize_domain(raw) == expected
+
+    def test_already_ascii_is_untouched(self):
+        assert core.normalize_domain("example.com") == "example.com"

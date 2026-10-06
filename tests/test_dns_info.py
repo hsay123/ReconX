@@ -153,3 +153,36 @@ def test_record_types_importable():
     # Guard against the dns.rdatatype import being dropped by a refactor.
     assert dns.rdatatype.A == 1
     assert isinstance(datetime.now(), datetime)
+
+
+class TestCustomResolver:
+    def test_make_resolver_points_at_the_given_server(self):
+        resolver = dns_info.make_resolver("9.9.9.9")
+        assert resolver.nameservers == ["9.9.9.9"]
+
+    def test_port_suffix_is_honoured(self):
+        resolver = dns_info.make_resolver("9.9.9.9#5353")
+        assert resolver.nameservers == ["9.9.9.9"]
+        assert resolver.port == 5353
+
+    def test_lookup_uses_the_context_resolver(self, monkeypatch):
+        fake = FakeResolver({"A": ["1.2.3.4"]})
+        monkeypatch.setattr(dns_info, "make_resolver", lambda address: fake)
+
+        result = dns_info.lookup("example.com", ReconContext(resolver="9.9.9.9"))
+
+        assert result["records"]["A"] == ["1.2.3.4"]
+        assert fake.queries and fake.queries[0][0] == "example.com"
+
+    def test_unusable_resolver_falls_back_to_default(self, monkeypatch):
+        fake = FakeResolver({"A": ["1.2.3.4"]})
+
+        def explode(address):
+            raise ValueError("not an address")
+
+        monkeypatch.setattr(dns_info, "make_resolver", explode)
+        monkeypatch.setattr(dns_info, "DEFAULT_RESOLVER", fake)
+
+        result = dns_info.lookup("example.com", ReconContext(resolver="not-an-address"))
+
+        assert result["records"]["A"] == ["1.2.3.4"]
