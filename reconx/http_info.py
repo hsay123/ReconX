@@ -75,11 +75,13 @@ def audit_security_headers(headers: dict[str, str]) -> dict[str, Any]:
 
     Returns:
         A dict with the ``present`` and ``missing`` header names and a
-        ``score`` out of ``total``. This is a presence check, not a
-        correctness check: a present-but-empty CSP still counts as present.
+        ``score`` out of ``total``. Presence alone is not enough: a header sent
+        with an empty value (``Content-Security-Policy:``) protects nothing, so
+        it is counted as missing. This is still a presence check, not a
+        correctness check: a malformed non-empty CSP counts as present.
     """
-    present = [name for name in SECURITY_HEADERS if name.lower() in headers]
-    missing = [name for name in SECURITY_HEADERS if name.lower() not in headers]
+    present = [name for name in SECURITY_HEADERS if (headers.get(name.lower()) or "").strip()]
+    missing = [name for name in SECURITY_HEADERS if name not in present]
     return {
         "present": present,
         "missing": missing,
@@ -119,8 +121,15 @@ def _fetch_chain(
     """
     chain: list[dict[str, Any]] = []
     current = url
+    visited: set[str] = set()
 
     for _ in range(MAX_REDIRECTS + 1):
+        if current in visited:
+            # A -> B -> A. Walking the remaining hops would just re-request
+            # URLs already known, so stop and name the cycle instead.
+            return None, chain, f"redirect loop: {current} was already visited"
+        visited.add(current)
+
         try:
             response = session.get(current, timeout=timeout, allow_redirects=False)
         except requests.Timeout:
