@@ -191,6 +191,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.timeout <= 0:
         parser.error("--timeout must be greater than zero")
 
+    if args.concurrency < 1:
+        parser.error(f"--concurrency must be at least 1 (got {args.concurrency})")
+
     try:
         target = core.normalize_domain(args.domain)
         modules = parse_modules(args.modules)
