@@ -1,5 +1,36 @@
 ## Unreleased
 
+- perf: modules now run on a bounded thread pool instead of one after another.
+  Every module is a blocking network call, so a run used to cost the sum of
+  all module latencies; it now costs about the slowest one. Results are
+  assembled in selection order, so report output stays deterministic.
+- feat: `--resolver ADDRESS` selects the nameserver to query (`1.1.1.1`, or
+  `1.1.1.1#5353` for a non-standard port), for split-horizon and internal
+  zones where the system resolver answers for a different network. An unusable
+  address falls back to the system resolver instead of failing the module.
+- fix: internationalized domains are encoded to punycode before validation, so
+  `münchen.de` and `例え.テスト` are scanned instead of rejected as invalid.
+- fix: the DNS sweep stops at the first NXDOMAIN. Each record type had been
+  reporting the same NXDOMAIN independently, so a nonexistent domain cost
+  seven identical queries and produced seven duplicate errors.
+- fix: `--concurrency 0` (or a negative value) is now a usage error instead of
+  being silently clamped to one thread and exiting 0.
+- fix: the redirect walk stops as soon as a URL repeats and reports the cycle,
+  rather than re-requesting seen URLs and ending with a bare "exceeded 5
+  redirects".
+- fix: a security header sent with an empty value is counted as missing. It
+  protects nothing, and scoring it as present overstated the site's posture.
+- fix: the crt.sh request now honours `--timeout` (scaled up, and still capped
+  at 30s) instead of ignoring it and waiting a fixed 30 seconds.
+- perf: subdomain resolution reuses one resolver per worker thread instead of
+  building a new one for every candidate name.
+- fix: the report renders safely when a module returns an unexpected shape;
+  the tech section used to raise KeyError and lose the finished report.
+- fix: the default `User-Agent` is derived from the packaged version instead of
+  a hardcoded string that went stale on release.
+- docs: added SECURITY.md stating the authorization policy and how to report a
+  vulnerability in ReconX itself.
+
 - docs: Replaced the stale RupeeLink README with an accurate ReconX README
   (modules, install, usage, safety notice, roadmap). The old file documented an
   unrelated P2P crypto project and was actively misleading.

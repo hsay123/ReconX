@@ -68,8 +68,9 @@ reconx [OPTIONS] DOMAIN
 | `DOMAIN` | required | Target domain, e.g. `example.com` |
 | `-m, --modules` | all | Comma-separated subset of `dns,whois,http,tls,tech,subdomains` |
 | `--timeout` | `10.0` | Per-request timeout in seconds |
-| `--concurrency, --max-workers` | `8` | Concurrency cap for wordlist resolution |
+| `--concurrency, --max-workers` | `8` | Threads used for wordlist resolution (minimum 1, capped at 32) |
 | `--wordlist` | built-in | Path to a custom subdomain wordlist |
+| `--resolver` | system | DNS server to query, e.g. `1.1.1.1` or `1.1.1.1#5353` |
 | `--no-crtsh` | off | Skip the certificate-transparency lookup |
 | `-f, --format` | `text` | Output format: `text`, `json`, `md`, `html` |
 | `-o, --output` | stdout | Write the report to a file instead of stdout |
@@ -79,7 +80,13 @@ reconx [OPTIONS] DOMAIN
 
 The domain is normalized for you, so `https://www.example.com/path?q=1`,
 `www.example.com` and `example.com` are all accepted and reduced to a clean
-registrable-looking hostname.
+registrable-looking hostname. Internationalized names are encoded to punycode,
+so `münchen.de` is scanned as `xn--mnchen-3ya.de`.
+
+Modules are independent network calls, so they are dispatched concurrently and
+a run costs roughly as long as its slowest module rather than the sum of all of
+them. Results are still reported in a fixed order, so two runs against an
+unchanged target produce identical output apart from the timestamp.
 
 ### Examples
 
@@ -111,6 +118,12 @@ Subdomain discovery with your own wordlist and a conservative concurrency cap:
 
 ```bash
 reconx example.com --modules subdomains --wordlist words.txt --max-workers 5
+```
+
+Pin DNS to a specific nameserver, for split-horizon or internal zones:
+
+```bash
+reconx corp.example --resolver 10.0.0.53
 ```
 
 ### Sample output
